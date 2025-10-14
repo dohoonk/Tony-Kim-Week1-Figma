@@ -166,10 +166,10 @@ collab-canvas/
 **Files:** `src/hooks/useCursor.ts`, `src/components/Canvas/CursorLayer.tsx`
 
 **Checklist:**
-- [ ] Capture and broadcast cursor positions.  
-- [ ] Throttle update frequency (~100ms).  
-- [ ] Store cursors as one document per user (overwrite, no growth).  
-- [ ] Render cursors for all active users; use presence color for cursor.  
+- [x] Capture and broadcast cursor positions.  
+- [x] Throttle update frequency (~100ms).  
+- [x] Store cursors as one document per user (overwrite, no growth).  
+- [x] Render cursors for all active users; use presence color for cursor.  
 
 **🧪 Unit + Integration Tests:**  
 - **Test Files:** `__tests__/hooks/useCursor.test.ts`, `__tests__/canvas/CursorLayer.test.tsx`  

@@ -8,6 +8,7 @@ import Shape from './Shape';
 import CursorLayer from './CursorLayer';
 import { useCursor } from '../../hooks/useCursor';
 import { useUser } from '../../context/UserContext';
+import PresenceBox from './PresenceBox';
 
 const MIN_SCALE = 0.25;
 const MAX_SCALE = 4;
@@ -155,6 +156,7 @@ function InnerCanvas() {
         <span data-testid="pos">{position.x},{position.y}</span>
         <span data-testid="panning">{isPanning ? '1' : '0'}</span>
       </div>
+      <PresenceBox />
       <Stage
         ref={stageRef}
         {...stageProps}
