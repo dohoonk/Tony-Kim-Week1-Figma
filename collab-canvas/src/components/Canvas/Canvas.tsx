@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Stage, Layer, Rect } from 'react-konva';
+import { Stage, Layer } from 'react-konva';
 import type Konva from 'konva';
 import '../../styles/Canvas.css';
+import { CanvasObjectsProvider, useCanvasObjects } from '../../hooks/useCanvasObjects';
+import CanvasToolbar from './CanvasToolbar';
+import Shape from './Shape';
 
 const MIN_SCALE = 0.25;
 const MAX_SCALE = 4;
@@ -10,7 +13,7 @@ function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, value));
 }
 
-export default function Canvas() {
+function InnerCanvas() {
   const stageRef = useRef<Konva.Stage>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -19,6 +22,8 @@ export default function Canvas() {
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [spaceDown, setSpaceDown] = useState(false);
   const [isPanning, setIsPanning] = useState(false);
+
+  const { objects, deleteSelected } = useCanvasObjects();
 
   useEffect(() => {
     const updateSize = () => {
@@ -40,6 +45,9 @@ export default function Canvas() {
         setIsPanning(true);
         stageRef.current?.draggable(true);
       }
+      if (e.code === 'Delete' || e.code === 'Backspace') {
+        deleteSelected();
+      }
     };
     const onKeyUp = (e: KeyboardEvent) => {
       if (e.code === 'Space') {
@@ -54,14 +62,13 @@ export default function Canvas() {
       window.removeEventListener('keydown', onKeyDown);
       window.removeEventListener('keyup', onKeyUp);
     };
-  }, []);
+  }, [deleteSelected]);
 
   const handleContextMenu = useCallback((e: any) => {
     e.evt?.preventDefault?.();
   }, []);
 
   const handlePointerDown = useCallback((e: any) => {
-    // Right mouse button => pan
     if (e.evt?.button === 2) {
       setIsPanning(true);
       stageRef.current?.draggable(true);
@@ -92,7 +99,7 @@ export default function Canvas() {
     if (!pointer) return;
 
     const scaleBy = 1.05;
-    const direction = e.evt.deltaY > 0 ? -1 : 1; // normalize trackpads
+    const direction = e.evt.deltaY > 0 ? -1 : 1;
     const newScale = clamp(direction > 0 ? oldScale * scaleBy : oldScale / scaleBy, MIN_SCALE, MAX_SCALE);
 
     const mousePointTo = {
@@ -123,7 +130,6 @@ export default function Canvas() {
 
   return (
     <div ref={containerRef} className="canvas-container" onContextMenu={(e) => e.preventDefault()}>
-      {/* Test readouts */}
       <div className="canvas-readouts">
         <span data-testid="scale">{scale.toFixed(2)}</span>
         <span data-testid="pos">{position.x},{position.y}</span>
@@ -140,10 +146,20 @@ export default function Canvas() {
         draggable={false}
       >
         <Layer>
-          {/* Demo shape to visualize transforms */}
-          <Rect x={100} y={100} width={200} height={120} fill="#91c9f9" cornerRadius={8} />
+          {objects.map((o) => (
+            <Shape key={o.id} object={o} />
+          ))}
         </Layer>
       </Stage>
     </div>
+  );
+}
+
+export default function Canvas() {
+  return (
+    <CanvasObjectsProvider>
+      <CanvasToolbar />
+      <InnerCanvas />
+    </CanvasObjectsProvider>
   );
 }
