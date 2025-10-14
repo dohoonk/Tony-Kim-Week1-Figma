@@ -4,6 +4,7 @@ import viteLogo from '/vite.svg'
 import './App.css'
 import Login from './components/Auth/Login'
 import LogoutButton from './components/Auth/LogoutButton'
+import Canvas from './components/Canvas/Canvas'
 
 function App() {
   const [count, setCount] = useState(0)
@@ -31,6 +32,7 @@ function App() {
           <LogoutButton />
         </div>
       </div>
+      <Canvas />
       <p className="read-the-docs">
         Click on the Vite and React logos to learn more
       </p>

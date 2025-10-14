@@ -1,5 +1,6 @@
 import { createContext, useContext, ReactNode } from 'react';
-import { useAuth, AuthState } from '../hooks/useAuth';
+import { useAuth } from '../hooks/useAuth';
+import type { AuthState } from '../hooks/useAuth';
 
 const UserContext = createContext<AuthState | null>(null);
 

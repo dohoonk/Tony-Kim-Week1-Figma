@@ -1,0 +1,23 @@
+.canvas-container {
+  position: relative;
+  width: 100%;
+  height: calc(100vh - 80px);
+  background: #f8fafc;
+  overflow: hidden;
+}
+
+.canvas-readouts {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  background: rgba(255,255,255,0.9);
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 4px 8px;
+  display: flex;
+  gap: 8px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 12px;
+  color: #334155;
+  z-index: 10;
+}
