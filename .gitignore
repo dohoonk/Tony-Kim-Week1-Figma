@@ -1,0 +1,40 @@
+# Node / Vite
+node_modules/
+dist/
+.build/
+.cache/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Env
+.env
+.env.*
+!.env.example
+.env.local
+
+# Firebase / Vercel
+.firebase/
+firebase-debug.log
+.firebaserc.local
+.vercel/
+
+# Testing
+coverage/
+.jest/
+.vitest/
+
+# IDE / Editor
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Misc
+*.local
