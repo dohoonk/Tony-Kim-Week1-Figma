@@ -103,18 +103,18 @@ collab-canvas/
 **Files:** `src/components/Canvas/Canvas.tsx`, `src/styles/Canvas.css`, `src/hooks/useCanvasObjects.ts`
 
 **Checklist:**
-- [ ] Initialize Konva Stage and Layer.  
-- [ ] Implement pan and zoom (wheel zoom; pan via right-drag and space+drag).  
-- [ ] Clamp zoom (e.g., 0.25–4) and pan to canvas bounds.  
-- [ ] Maintain canvas transform state.  
-- [ ] Optimize for 60 FPS.  
+- [x] Initialize Konva Stage and Layer.  
+- [x] Implement pan and zoom (wheel zoom; pan via right-drag and space+drag).  
+- [x] Clamp zoom (e.g., 0.25–4) and pan to canvas bounds.  
+- [x] Maintain canvas transform state.  
+- [x] Optimize for 60 FPS.  
 
 **🧪 Unit Tests:**  
 - **Test File:** `__tests__/canvas/CanvasPanZoom.test.tsx`  
 - **Verifications:**  
-  - [ ] Canvas initializes with correct scale/position.  
-  - [ ] Wheel zoom changes scale.  
-  - [ ] Drag pan updates position.  
+  - [x] Canvas initializes with correct scale/position.  
+  - [x] Wheel zoom changes scale.  
+  - [x] Drag pan updates position.  
 
 ---
 
@@ -124,10 +124,10 @@ collab-canvas/
 **Files:** `src/components/Canvas/Shape.tsx`, `CanvasToolbar.tsx`, `src/hooks/useCanvasObjects.ts`
 
 **Checklist:**
-- [ ] Toolbar buttons create new shapes (choose from 3 predefined).  
-- [ ] Shapes draggable/resizable.  
-- [ ] Delete via `Delete` (Windows) and `Backspace` (macOS).  
-- [ ] Maintain state via React Context.  
+- [x] Toolbar buttons create new shapes (choose from 3 predefined).  
+- [x] Shapes draggable/resizable.  
+- [x] Delete via `Delete` (Windows) and `Backspace` (macOS).  
+- [x] Maintain state via React Context.  
 
 **🧪 Unit + Integration Tests:**  
 - **Test Files:** `__tests__/canvas/Shape.test.tsx`, `__tests__/canvas/CanvasToolbar.test.tsx`  

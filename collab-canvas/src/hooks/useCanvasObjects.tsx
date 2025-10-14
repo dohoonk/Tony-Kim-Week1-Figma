@@ -1,4 +1,5 @@
-import { createContext, useCallback, useContext, useMemo, useRef, useState, ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, ReactNode } from 'react';
+import { useFirestoreSync } from './useFirestoreSync';
 
 export type ShapeType = 'rectangle' | 'circle' | 'triangle';
 
@@ -49,21 +50,49 @@ export function CanvasObjectsProvider({ children }: { children: ReactNode }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const addCountRef = useRef(0);
 
+  const { subscribe, writeObject, deleteObject } = useFirestoreSync();
+
+  // Debounce writes during drag/resize
+  const pendingWrite = useRef<Record<string, number>>({});
+  const scheduleWrite = useCallback((obj: CanvasObject) => {
+    const key = obj.id;
+    if (pendingWrite.current[key]) window.clearTimeout(pendingWrite.current[key]);
+    pendingWrite.current[key] = window.setTimeout(() => {
+      void writeObject(obj);
+      delete pendingWrite.current[key];
+    }, 100);
+  }, [writeObject]);
+
+  // Realtime subscription
+  useEffect(() => {
+    return subscribe((remote) => {
+      setObjects(remote);
+      if (selectedId && !remote.find((o) => o.id === selectedId)) {
+        setSelectedId(null);
+      }
+    });
+  }, [subscribe, selectedId]);
+
   const addShape = useCallback((type: ShapeType) => {
     const obj = newShape(type, addCountRef.current++);
     setObjects((prev) => [...prev, obj]);
     setSelectedId(obj.id);
-  }, []);
+    scheduleWrite(obj);
+  }, [scheduleWrite]);
 
   const updateShape = useCallback((id: string, patch: Partial<CanvasObject>) => {
     setObjects((prev) => prev.map((o) => (o.id === id ? { ...o, ...patch } : o)));
-  }, []);
+    const next = objects.find((o) => o.id === id);
+    if (next) scheduleWrite({ ...next, ...patch });
+  }, [objects, scheduleWrite]);
 
   const deleteSelected = useCallback(() => {
     if (!selectedId) return;
-    setObjects((prev) => prev.filter((o) => o.id !== selectedId));
+    const id = selectedId;
+    setObjects((prev) => prev.filter((o) => o.id !== id));
     setSelectedId(null);
-  }, [selectedId]);
+    void deleteObject(id);
+  }, [selectedId, deleteObject]);
 
   const select = useCallback((id: string | null) => setSelectedId(id), []);
 
