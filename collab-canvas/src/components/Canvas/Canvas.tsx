@@ -7,6 +7,7 @@ import CanvasToolbar from './CanvasToolbar';
 import Shape from './Shape';
 import CursorLayer from './CursorLayer';
 import { useCursor } from '../../hooks/useCursor';
+import { useUser } from '../../context/UserContext';
 
 const MIN_SCALE = 0.25;
 const MAX_SCALE = 4;
@@ -24,9 +25,11 @@ function InnerCanvas() {
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [spaceDown, setSpaceDown] = useState(false);
   const [isPanning, setIsPanning] = useState(false);
+  const [selfPos, setSelfPos] = useState<{ x: number; y: number } | null>(null);
 
   const { objects, deleteSelected } = useCanvasObjects();
   const { updateCursor } = useCursor(100);
+  const { user } = useUser();
 
   useEffect(() => {
     const updateSize = () => {
@@ -103,6 +106,7 @@ function InnerCanvas() {
     // eslint-disable-next-line no-console
     console.debug('[Canvas] mouseMove', { pointer, stagePos: position, scale, world: { x, y } });
     updateCursor(x, y);
+    setSelfPos({ x, y });
   }, [position, scale, updateCursor]);
 
   const handleWheel = useCallback((e: any) => {
@@ -167,7 +171,10 @@ function InnerCanvas() {
             <Shape key={o.id} object={o} />
           ))}
         </Layer>
-        <CursorLayer onMouseMove={() => { /* no-op; mouse handled at Stage */ }} />
+        <CursorLayer
+          scale={scale}
+          selfCursor={selfPos && user ? { uid: user.uid, x: selfPos.x, y: selfPos.y, name: user.displayName ?? 'You', color: '#5b8def' } : undefined}
+        />
       </Stage>
     </div>
   );

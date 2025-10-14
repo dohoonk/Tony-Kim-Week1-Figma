@@ -24,7 +24,7 @@ export function useCursor(throttleMs: number = 100) {
   useEffect(() => {
     const col = collection(db, 'cursors');
     // eslint-disable-next-line no-console
-    console.debug('[Cursors] subscribing to /cursors');
+    console.log('[Cursors] subscribing to /cursors');
     const unsub = onSnapshot(
       col,
       (snap) => {
@@ -43,7 +43,7 @@ export function useCursor(throttleMs: number = 100) {
           });
         });
         // eslint-disable-next-line no-console
-        console.debug('[Cursors] snapshot size:', items.length, 'ids:', ids);
+        console.log('[Cursors] snapshot size:', items.length, 'ids:', ids);
         setCursors(items);
       },
       (error) => {
@@ -70,7 +70,7 @@ export function useCursor(throttleMs: number = 100) {
         { merge: true }
       );
       // eslint-disable-next-line no-console
-      console.debug('[Cursors] wrote', { x, y });
+      console.log('[Cursors] wrote', { x, y });
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error('[Firestore] setDoc failed for', ref.path, error);
@@ -111,15 +111,21 @@ export function useCursor(throttleMs: number = 100) {
     };
   }, [user]);
 
-  // Include local fallback of self cursor if not yet present from Firestore
+  // Always ensure self cursor is present and uses freshest local position
   const withSelf = useMemo(() => {
-    if (!user || !selfPos) return cursors;
-    const hasSelf = cursors.some((c) => c.uid === user.uid);
-    if (hasSelf) return cursors;
-    return [
-      ...cursors,
-      { uid: user.uid, x: selfPos.x, y: selfPos.y, name: user.displayName ?? 'You', color: '#5b8def' },
-    ];
+    if (!user) return cursors;
+    const map = new Map<string, RemoteCursor>();
+    for (const c of cursors) map.set(c.uid, c);
+    if (selfPos) {
+      map.set(user.uid, {
+        uid: user.uid,
+        x: selfPos.x,
+        y: selfPos.y,
+        name: user.displayName ?? 'You',
+        color: '#5b8def',
+      });
+    }
+    return Array.from(map.values());
   }, [cursors, selfPos, user]);
 
   return { cursors: withSelf, updateCursor };
