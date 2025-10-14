@@ -14,6 +14,7 @@ export type RemoteCursor = {
 export function useCursor(throttleMs: number = 100) {
   const { user } = useUser();
   const [cursors, setCursors] = useState<RemoteCursor[]>([]);
+  const [selfPos, setSelfPos] = useState<{ x: number; y: number } | null>(null);
 
   const lastSentAtRef = useRef<number>(0);
   const pendingTimeoutRef = useRef<number | null>(null);
@@ -37,6 +38,8 @@ export function useCursor(throttleMs: number = 100) {
             color: data.color ?? '#5b8def',
           });
         });
+        // eslint-disable-next-line no-console
+        console.debug('[Cursors] snapshot size:', items.length);
         setCursors(items);
       },
       (error) => {
@@ -62,6 +65,8 @@ export function useCursor(throttleMs: number = 100) {
         },
         { merge: true }
       );
+      // eslint-disable-next-line no-console
+      console.debug('[Cursors] wrote', { x, y });
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error('[Firestore] setDoc failed for', ref.path, error);
@@ -73,6 +78,7 @@ export function useCursor(throttleMs: number = 100) {
     (x: number, y: number) => {
       if (!user) return;
       latestPosRef.current = { x, y };
+      setSelfPos({ x, y });
       const now = Date.now();
       const elapsed = now - lastSentAtRef.current;
       if (elapsed >= throttleMs) {
@@ -101,8 +107,18 @@ export function useCursor(throttleMs: number = 100) {
     };
   }, [user]);
 
-  // Include self cursor so single-user sessions can see a cursor too
-  return { cursors, updateCursor };
+  // Include local fallback of self cursor if not yet present from Firestore
+  const withSelf = useMemo(() => {
+    if (!user || !selfPos) return cursors;
+    const hasSelf = cursors.some((c) => c.uid === user.uid);
+    if (hasSelf) return cursors;
+    return [
+      ...cursors,
+      { uid: user.uid, x: selfPos.x, y: selfPos.y, name: user.displayName ?? 'You', color: '#5b8def' },
+    ];
+  }, [cursors, selfPos, user]);
+
+  return { cursors: withSelf, updateCursor };
 }
 
 
