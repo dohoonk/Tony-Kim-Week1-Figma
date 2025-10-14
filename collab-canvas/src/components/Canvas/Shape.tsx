@@ -1,7 +1,8 @@
 import { Circle as KCircle, Group, Rect as KRect, RegularPolygon, Transformer } from 'react-konva';
 import type Konva from 'konva';
 import { useEffect, useRef } from 'react';
-import { CanvasObject, useCanvasObjects } from '../../hooks/useCanvasObjects';
+import { useCanvasObjects } from '../../hooks/useCanvasObjects';
+import type { CanvasObject } from '../../hooks/useCanvasObjects';
 
 export default function Shape({ object }: { object: CanvasObject }) {
   const { selectedId, select, updateShape } = useCanvasObjects();
@@ -16,18 +17,22 @@ export default function Shape({ object }: { object: CanvasObject }) {
     }
   }, [isSelected]);
 
-  const commonProps = {
-    draggable: true,
-    onDragEnd: (e: any) => {
-      updateShape(object.id, { x: e.target.x(), y: e.target.y() });
-    },
-    onClick: () => select(object.id),
-    ref: nodeRef as any,
-    rotation: object.rotation,
+  const handleDragEnd = (e: any) => {
+    const node = e.target as Konva.Node & { x: () => number; y: () => number };
+    let newX = node.x();
+    let newY = node.y();
+    // Center-based nodes need converting back to top-left
+    if (object.type !== 'rectangle') {
+      newX = newX - object.width / 2;
+      newY = newY - object.height / 2;
+    }
+    updateShape(object.id, { x: newX, y: newY });
   };
 
-  const handleTransformEnd = (e: any) => {
+  const handleTransformEnd = () => {
     const node = nodeRef.current as any;
+    if (!node) return;
+
     const scaleX = node.scaleX();
     const scaleY = node.scaleY();
 
@@ -37,7 +42,23 @@ export default function Shape({ object }: { object: CanvasObject }) {
     node.scaleX(1);
     node.scaleY(1);
 
-    updateShape(object.id, { x: node.x(), y: node.y(), width, height });
+    let newX = node.x();
+    let newY = node.y();
+    if (object.type !== 'rectangle') {
+      newX = newX - width / 2;
+      newY = newY - height / 2;
+    }
+
+    updateShape(object.id, { x: newX, y: newY, width, height });
+  };
+
+  const commonProps = {
+    draggable: true,
+    onDragEnd: handleDragEnd,
+    onClick: () => select(object.id),
+    ref: nodeRef as any,
+    rotation: object.rotation,
+    onTransformEnd: handleTransformEnd,
   };
 
   return (
@@ -51,7 +72,6 @@ export default function Shape({ object }: { object: CanvasObject }) {
           fill={object.color}
           cornerRadius={8}
           {...commonProps}
-          onTransformEnd={handleTransformEnd}
         />
       )}
       {object.type === 'circle' && (
@@ -61,7 +81,6 @@ export default function Shape({ object }: { object: CanvasObject }) {
           radius={Math.min(object.width, object.height) / 2}
           fill={object.color}
           {...commonProps}
-          onTransformEnd={handleTransformEnd}
         />
       )}
       {object.type === 'triangle' && (
@@ -72,7 +91,6 @@ export default function Shape({ object }: { object: CanvasObject }) {
           radius={Math.min(object.width, object.height) / 2}
           fill={object.color}
           {...commonProps}
-          onTransformEnd={handleTransformEnd}
         />
       )}
       {isSelected && (
