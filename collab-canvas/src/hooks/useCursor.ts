@@ -101,9 +101,8 @@ export function useCursor(throttleMs: number = 100) {
     };
   }, [user]);
 
-  const others = useMemo(() => cursors.filter((c) => c.uid !== (user?.uid ?? '')), [cursors, user]);
-
-  return { cursors: others, updateCursor };
+  // Include self cursor so single-user sessions can see a cursor too
+  return { cursors, updateCursor };
 }
 
 
