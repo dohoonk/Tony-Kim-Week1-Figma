@@ -100,6 +100,8 @@ function InnerCanvas() {
     // Convert screen to stage coordinates considering scale and position
     const x = (pointer.x - position.x) / scale;
     const y = (pointer.y - position.y) / scale;
+    // eslint-disable-next-line no-console
+    console.debug('[Canvas] mouseMove', { pointer, stagePos: position, scale, world: { x, y } });
     updateCursor(x, y);
   }, [position, scale, updateCursor]);
 
