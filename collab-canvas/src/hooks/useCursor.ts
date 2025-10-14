@@ -23,13 +23,17 @@ export function useCursor(throttleMs: number = 100) {
   // Subscribe to all cursors
   useEffect(() => {
     const col = collection(db, 'cursors');
+    // eslint-disable-next-line no-console
+    console.debug('[Cursors] subscribing to /cursors');
     const unsub = onSnapshot(
       col,
       (snap) => {
         const items: RemoteCursor[] = [] as any;
+        const ids: string[] = [];
         snap.forEach((d) => {
           const data = d.data() as any;
           if (!data) return;
+          ids.push(d.id);
           items.push({
             uid: d.id,
             x: data.x ?? 0,
@@ -39,7 +43,7 @@ export function useCursor(throttleMs: number = 100) {
           });
         });
         // eslint-disable-next-line no-console
-        console.debug('[Cursors] snapshot size:', items.length);
+        console.debug('[Cursors] snapshot size:', items.length, 'ids:', ids);
         setCursors(items);
       },
       (error) => {
