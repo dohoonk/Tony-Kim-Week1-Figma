@@ -145,10 +145,10 @@ collab-canvas/
 **Files:** `src/hooks/useFirestoreSync.ts`, `src/hooks/useCanvasObjects.ts`, `src/utils/firebase.ts`
 
 **Checklist:**
-- [ ] Create Firestore `canvasObjects` collection.  
-- [ ] Perform full-document writes on local changes (debounce ~100ms during drags).  
-- [ ] Merge remote updates.  
-- [ ] Implement `updatedAt` conflict resolution using `serverTimestamp()`.  
+- [x] Create Firestore `canvasObjects` collection.  
+- [x] Perform full-document writes on local changes (debounce ~100ms during drags).  
+- [x] Merge remote updates.  
+- [x] Implement `updatedAt` conflict resolution using `serverTimestamp()`.  
 
 **🔄 Integration Tests:**  
 - **Test File:** `__tests__/hooks/useFirestoreSync.test.ts`  

@@ -5,6 +5,8 @@ import '../../styles/Canvas.css';
 import { CanvasObjectsProvider, useCanvasObjects } from '../../hooks/useCanvasObjects';
 import CanvasToolbar from './CanvasToolbar';
 import Shape from './Shape';
+import CursorLayer from './CursorLayer';
+import { useCursor } from '../../hooks/useCursor';
 
 const MIN_SCALE = 0.25;
 const MAX_SCALE = 4;
@@ -24,6 +26,7 @@ function InnerCanvas() {
   const [isPanning, setIsPanning] = useState(false);
 
   const { objects, deleteSelected } = useCanvasObjects();
+  const { updateCursor } = useCursor(100);
 
   useEffect(() => {
     const updateSize = () => {
@@ -89,6 +92,17 @@ function InnerCanvas() {
     setPosition({ x: pos.x, y: pos.y });
   }, []);
 
+  const handleMouseMove = useCallback(() => {
+    const s = stageRef.current;
+    if (!s) return;
+    const pointer = s.getPointerPosition();
+    if (!pointer) return;
+    // Convert screen to stage coordinates considering scale and position
+    const x = (pointer.x - position.x) / scale;
+    const y = (pointer.y - position.y) / scale;
+    updateCursor(x, y);
+  }, [position, scale, updateCursor]);
+
   const handleWheel = useCallback((e: any) => {
     e.evt.preventDefault();
     const s = stageRef.current;
@@ -142,6 +156,7 @@ function InnerCanvas() {
         onContentMousedown={handlePointerDown}
         onContentMouseup={handlePointerUp}
         onDragMove={handleDragMove}
+        onMouseMove={handleMouseMove}
         onContextMenu={handleContextMenu}
         draggable={false}
       >
@@ -150,6 +165,7 @@ function InnerCanvas() {
             <Shape key={o.id} object={o} />
           ))}
         </Layer>
+        <CursorLayer onMouseMove={() => { /* no-op; mouse handled at Stage */ }} />
       </Stage>
     </div>
   );
