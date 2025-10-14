@@ -65,11 +65,11 @@ collab-canvas/
 **Files:** `package.json`, `firebase.json`, `.env.local`, `src/utils/firebase.ts`, `src/App.tsx`, `src/index.tsx`
 
 **Checklist:**
-- [ ] Create React + TypeScript project.  
-- [ ] Install dependencies: `firebase`, `konva`.  
-- [ ] Configure Firebase initialization.  
-- [ ] Add `.env.local` and connect project.  
-- [ ] Verify Firebase connectivity.  
+- [x] Create React + TypeScript project.  
+- [x] Install dependencies: `firebase`, `konva`.  
+- [x] Configure Firebase initialization.  
+- [x] Add `.env.local` and connect project.  
+- [x] Verify Firebase connectivity.  
 
 **🧪 Testing:** *None (manual verification only)*
 
@@ -81,19 +81,19 @@ collab-canvas/
 **Files:** `src/components/Auth/Login.tsx`, `LogoutButton.tsx`, `src/hooks/useAuth.ts`, `src/context/UserContext.tsx`
 
 **Checklist:**
-- [ ] Configure `GoogleAuthProvider()` and signIn/signOut methods.  
-- [ ] Build `useAuth()` hook.  
-- [ ] Provide global `UserContext` (React Context; no Zustand).  
-- [ ] Add Login/Logout UI.  
-- [ ] Set Firebase Auth persistence to NONE (resets on browser close).  
+- [x] Configure `GoogleAuthProvider()` and signIn/signOut methods.  
+- [x] Build `useAuth()` hook.  
+- [x] Provide global `UserContext` (React Context; no Zustand).  
+- [x] Add Login/Logout UI.  
+- [x] Set Firebase Auth persistence to NONE (resets on browser close).  
 
 **🔄 Integration Tests:**  
 - **Test Files:** `__tests__/auth/Login.test.tsx`, `__tests__/hooks/useAuth.test.ts`  
 - **Framework:** React Testing Library + Vitest  
 - **Verifications:**  
-  - [ ] Clicking login triggers `signInWithPopup`.  
-  - [ ] Context updates with user info.  
-  - [ ] Logout clears context.  
+  - [x] Clicking login triggers `signInWithPopup`.  
+  - [x] Context updates with user info.  
+  - [x] Logout clears context.  
 
 ---
 
