@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { db } from '../utils/firebase';
-import { collection, deleteDoc, doc, onSnapshot, serverTimestamp, setDoc } from 'firebase/firestore';
+import { collection, deleteDoc, doc, onSnapshot, orderBy, query, serverTimestamp, setDoc } from 'firebase/firestore';
 import type { CanvasObject } from './useCanvasObjects';
 
 export type FirestoreSync = {
@@ -12,8 +12,9 @@ export type FirestoreSync = {
 export function useFirestoreSync(): FirestoreSync {
   const subscribe = useCallback((onChange: (objects: CanvasObject[]) => void) => {
     const col = collection(db, 'canvasObjects');
+    const q = query(col, orderBy('updatedAt', 'asc'));
     const unsub = onSnapshot(
-      col,
+      q,
       (snap) => {
         const items: CanvasObject[] = [] as any;
         snap.forEach((d) => {

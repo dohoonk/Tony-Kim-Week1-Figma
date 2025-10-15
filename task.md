@@ -186,12 +186,12 @@ collab-canvas/
 **Files:** `src/components/Canvas/PresenceBox.tsx`, `src/hooks/usePresence.ts`, `src/styles/PresenceBox.css`
 
 **Checklist:**
-- [ ] Create `/presence` Firestore collection.  
-- [ ] On login, create presence doc with `expiresAt`.  
-- [ ] Heartbeat to extend `expiresAt` (serverTimestamp + 5m).  
-- [ ] Configure Firestore TTL to remove stale docs after ~5m.  
-- [ ] Render avatars or initials.  
-- [ ] Hover tooltip shows names.  
+- [x] Create `/presence` Firestore collection.  
+- [x] On login, create presence doc with `expiresAt`.  
+- [x] Heartbeat to extend `expiresAt` (serverTimestamp + 5m).  
+- [x] Configure Firestore TTL to remove stale docs after ~5m.  
+- [x] Render avatars or initials.  
+- [] Hover tooltip shows names.  
 
 **🔄 Integration Tests:**  
 - **Test File:** `__tests__/presence/PresenceBox.test.tsx`  
