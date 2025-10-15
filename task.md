@@ -279,3 +279,19 @@ npm install --save-dev vitest @testing-library/react @testing-library/jest-dom @
   - `VITE_FIREBASE_APP_ID`  
 - Do not commit `.env.local`.  
 - Use Vercel “Encrypt” for secrets.  
+
+---
+
+## **PR #11 – Object Rotation**
+**Goal:** Allow users to rotate shapes and persist rotation.
+
+**Files:** `src/components/Canvas/Shape.tsx`, `src/hooks/useCanvasObjects.tsx`
+
+**Checklist:**
+- [ ] Enable rotation handles in `Transformer`.
+- [ ] Update `rotation` in state on transform end.
+- [ ] Persist `rotation` to Firestore with other shape fields.
+
+**🧪 Tests (optional for MVP):**
+- [ ] Rotating updates the `rotation` value.
+- [ ] Rotation persists across reload.

@@ -49,7 +49,8 @@ export default function Shape({ object }: { object: CanvasObject }) {
       newY = newY - height / 2;
     }
 
-    updateShape(object.id, { x: newX, y: newY, width, height });
+    const newRotation = node.rotation() as number;
+    updateShape(object.id, { x: newX, y: newY, width, height, rotation: newRotation });
   };
 
   const commonProps = {
@@ -96,7 +97,9 @@ export default function Shape({ object }: { object: CanvasObject }) {
       {isSelected && (
         <Transformer
           ref={trRef as any}
-          rotateEnabled={false}
+          rotateEnabled={true}
+          rotationSnaps={[0, 90, 180, 270]}
+          rotateAnchorOffset={20}
           enabledAnchors={['top-left', 'top-right', 'bottom-left', 'bottom-right']}
         />
       )}
