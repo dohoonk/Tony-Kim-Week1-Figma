@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider, inMemoryPersistence, setPersistence } from 'firebase/auth';
+import { getAuth, GoogleAuthProvider, setPersistence, browserLocalPersistence } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 
 const firebaseConfig = {
@@ -14,8 +14,8 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 
 const auth = getAuth(app);
-// Transient auth: resets on reload/close
-setPersistence(auth, inMemoryPersistence).catch(() => {
+// Persist auth across reloads
+setPersistence(auth, browserLocalPersistence).catch(() => {
   // No-op: fall back to default persistence if setting fails
 });
 
