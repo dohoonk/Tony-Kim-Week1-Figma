@@ -26,7 +26,7 @@ function InnerCanvas() {
   const [scale, setScale] = useState(1);
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [spaceDown, setSpaceDown] = useState(false);
-  const [isPanning, setIsPanning] = useState(false);
+  const [, setIsPanning] = useState(false);
   const [selfPos, setSelfPos] = useState<{ x: number; y: number } | null>(null);
 
   const { objects, deleteSelected } = useCanvasObjects();
