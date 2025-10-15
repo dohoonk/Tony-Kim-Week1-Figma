@@ -228,12 +228,12 @@ collab-canvas/
 **Files:** `src/App.tsx`, `src/pages/Landing.tsx`, `src/pages/CanvasPage.tsx`, `src/components/Canvas/*`
 
 **Checklist:**
-- [ ] Install `react-router-dom`.  
-- [ ] Create Landing page with title “Tony’s Figma” and a Login button.  
-- [ ] After login, redirect to `/canvas`.  
-- [ ] Create `/canvas` route that renders the canvas-only view.  
-- [ ] Keep `CanvasToolbar` and the instruction text at the top of the canvas page.  
-- [ ] Add an auth guard so unauthenticated users are redirected to Landing.  
+- [x] Install `react-router-dom`.  
+- [x] Create Landing page with title “Tony’s Figma” and a Login button.  
+- [x] After login, redirect to `/canvas`.  
+- [x] Create `/canvas` route that renders the canvas-only view.  
+- [x] Keep `CanvasToolbar` and the instruction text at the top of the canvas page.  
+- [x] Add an auth guard so unauthenticated users are redirected to Landing.  
 
 **🧪 Tests (optional for MVP):**  
 - [ ] Route guard redirects guests to Landing.  

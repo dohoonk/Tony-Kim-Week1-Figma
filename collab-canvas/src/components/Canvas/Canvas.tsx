@@ -9,6 +9,7 @@ import CursorLayer from './CursorLayer';
 import { useCursor } from '../../hooks/useCursor';
 import { useUser } from '../../context/UserContext';
 import PresenceBox from './PresenceBox';
+import LogoutButton from '../Auth/LogoutButton';
 
 const MIN_SCALE = 0.25;
 const MAX_SCALE = 4;
@@ -169,11 +170,7 @@ function InnerCanvas() {
 
   return (
     <div ref={containerRef} className="canvas-container" onContextMenu={(e) => e.preventDefault()}>
-      <div className="canvas-readouts">
-        <span data-testid="scale">{scale.toFixed(2)}</span>
-        <span data-testid="pos">{position.x},{position.y}</span>
-        <span data-testid="panning">{isPanning ? '1' : '0'}</span>
-      </div>
+      <div className="canvas-logout-box"><LogoutButton /></div>
       <PresenceBox />
       <Stage
         ref={stageRef}
