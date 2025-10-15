@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 import { db } from '../utils/firebase';
 import { collection, deleteDoc, doc, onSnapshot, orderBy, query, serverTimestamp, setDoc } from 'firebase/firestore';
 import type { CanvasObject } from './useCanvasObjects';
+import { useUser } from '../context/UserContext';
 
 export type FirestoreSync = {
   subscribe: (onChange: (objects: CanvasObject[]) => void) => () => void;
@@ -10,7 +11,14 @@ export type FirestoreSync = {
 };
 
 export function useFirestoreSync(): FirestoreSync {
+  const { user } = useUser();
+
   const subscribe = useCallback((onChange: (objects: CanvasObject[]) => void) => {
+    if (!user) {
+      // eslint-disable-next-line no-console
+      console.warn('[Firestore] subscribe skipped: not authenticated');
+      return () => {};
+    }
     const col = collection(db, 'canvasObjects');
     const q = query(col, orderBy('updatedAt', 'asc'));
     const unsub = onSnapshot(
@@ -40,7 +48,7 @@ export function useFirestoreSync(): FirestoreSync {
       }
     );
     return unsub;
-  }, []);
+  }, [user]);
 
   const writeObject = useCallback(async (obj: CanvasObject) => {
     const ref = doc(db, 'canvasObjects', obj.id);

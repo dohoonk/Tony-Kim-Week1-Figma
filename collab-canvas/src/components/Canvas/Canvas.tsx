@@ -110,6 +110,24 @@ function InnerCanvas() {
     setSelfPos({ x, y });
   }, [position, scale, updateCursor]);
 
+  // Ensure cursor keeps updating even when dragging shapes (document-level pointermove)
+  useEffect(() => {
+    const onDocPointerMove = (e: PointerEvent) => {
+      const el = containerRef.current;
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      const px = e.clientX - rect.left;
+      const py = e.clientY - rect.top;
+      if (px < 0 || py < 0 || px > rect.width || py > rect.height) return;
+      const x = (px - position.x) / scale;
+      const y = (py - position.y) / scale;
+      updateCursor(x, y);
+      setSelfPos({ x, y });
+    };
+    window.addEventListener('pointermove', onDocPointerMove);
+    return () => window.removeEventListener('pointermove', onDocPointerMove);
+  }, [position, scale, updateCursor]);
+
   const handleWheel = useCallback((e: any) => {
     e.evt.preventDefault();
     const s = stageRef.current;

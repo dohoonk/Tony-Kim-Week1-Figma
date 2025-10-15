@@ -29,11 +29,16 @@ export function useCursor(throttleMs: number = 100) {
     const unsub = onSnapshot(
       col,
       (snap) => {
+        const now = Date.now();
+        const freshnessMs = 3 * 60 * 1000; // 3 minutes
         const items: RemoteCursor[] = [] as any;
         const ids: string[] = [];
         snap.forEach((d) => {
           const data = d.data() as any;
           if (!data) return;
+          const updatedAt: any = data.updatedAt;
+          const updatedAtMs = updatedAt?.toMillis ? updatedAt.toMillis() : 0;
+          if (now - updatedAtMs > freshnessMs) return; // stale cursor hidden
           ids.push(d.id);
           items.push({
             uid: d.id,
@@ -44,7 +49,7 @@ export function useCursor(throttleMs: number = 100) {
           });
         });
         // eslint-disable-next-line no-console
-        console.log('[Cursors] snapshot size:', items.length, 'ids:', ids);
+        console.log('[Cursors] snapshot size (fresh):', items.length, 'ids:', ids);
         setCursors(items);
       },
       (error) => {

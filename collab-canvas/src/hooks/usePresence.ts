@@ -28,10 +28,15 @@ export function usePresence() {
     const unsub = onSnapshot(
       col,
       (snap) => {
+        const now = Date.now();
+        const freshnessMs = 3 * 60 * 1000; // 3 minutes
         const list: PresenceUser[] = [] as any;
         const ids: string[] = [];
         snap.forEach((d) => {
           const data = d.data() as any;
+          const updatedAt: any = data.updatedAt ?? data.expiresAt;
+          const updatedAtMs = updatedAt?.toMillis ? updatedAt.toMillis() : 0;
+          if (now - updatedAtMs > freshnessMs) return; // stale presence hidden
           ids.push(d.id);
           list.push({
             uid: d.id,
@@ -40,7 +45,7 @@ export function usePresence() {
           });
         });
         // eslint-disable-next-line no-console
-        console.log('[Presence] snapshot size:', list.length, 'ids:', ids);
+        console.log('[Presence] snapshot size (fresh):', list.length, 'ids:', ids);
         setActive(list);
       },
       (err) => {

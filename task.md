@@ -208,10 +208,10 @@ collab-canvas/
 **Files:** `src/hooks/useCanvasObjects.ts`, `src/utils/firebase.ts`
 
 **Checklist:**
-- [ ] Fetch all objects on mount.  
-- [ ] Merge with live updates.  
-- [ ] Debounce writes (~100ms).  
-- [ ] Verify reload restores identical state.  
+- [x] Fetch all objects on mount.  
+- [x] Merge with live updates.  
+- [x] Debounce writes (~100ms).  
+- [] Verify reload restores identical state.  
 
 **🔄 Integration Tests:**  
 - **Test File:** `__tests__/persistence/CanvasPersistence.test.ts`  
