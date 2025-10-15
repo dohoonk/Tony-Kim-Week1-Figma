@@ -222,7 +222,26 @@ collab-canvas/
 
 ---
 
-## **PR #9 – Final Deployment and E2E Verification**
+## **PR #9 – Routing and Landing Page**
+**Goal:** Add a landing page and route the authenticated user to a dedicated canvas page.
+
+**Files:** `src/App.tsx`, `src/pages/Landing.tsx`, `src/pages/CanvasPage.tsx`, `src/components/Canvas/*`
+
+**Checklist:**
+- [ ] Install `react-router-dom`.  
+- [ ] Create Landing page with title “Tony’s Figma” and a Login button.  
+- [ ] After login, redirect to `/canvas`.  
+- [ ] Create `/canvas` route that renders the canvas-only view.  
+- [ ] Keep `CanvasToolbar` and the instruction text at the top of the canvas page.  
+- [ ] Add an auth guard so unauthenticated users are redirected to Landing.  
+
+**🧪 Tests (optional for MVP):**  
+- [ ] Route guard redirects guests to Landing.  
+- [ ] Successful login navigates to `/canvas`.
+
+---
+
+## **PR #10 – Final Deployment and E2E Verification**
 **Goal:** Deploy app (Vercel + Firebase) and validate real-time performance.
 
 **Files:** `firebase.json`, `vercel.json`, `src/App.tsx`, `README.md`
