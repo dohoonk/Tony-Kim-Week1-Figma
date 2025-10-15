@@ -1,73 +1,97 @@
-# React + TypeScript + Vite
+# Tony's Figma – CollabCanvas (MVP)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A real-time collaborative design canvas built with React, Konva, and Firebase. Multiple users can add/move/resize/rotate shapes, see each other’s cursors and presence, and stay in sync via Firestore.
 
-Currently, two official plugins are available:
+## Architecture Choices
+- React + Vite + TypeScript: fast DX and typed safety.
+- State via React Context:
+  - `UserContext` for auth
+  - `CanvasObjects` context for shapes (add/update/delete/copy)
+- Rendering: `react-konva` (Konva.js) for performant canvas interactions.
+- Backend: Firebase
+  - Auth: Google OAuth; persistence: browserLocalPersistence
+  - Firestore: collections `canvasObjects`, `cursors`, `presence`
+  - Presence TTL handled server-side; client filters stale entries after 3 minutes.
+- Sync model: full-document writes, debounced (~100ms) during drag/resize; conflict strategy is last-write-wins via `updatedAt: serverTimestamp()`.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+### Firestore Schema (MVP)
+- `canvasObjects/{id}`: `{ id, type, x, y, width, height, color, rotation, updatedAt }`
+- `cursors/{uid}`: `{ x, y, name, color, updatedAt }` (one doc per user)
+- `presence/{uid}`: `{ name, color, updatedAt, expiresAt }` (one doc per user)
 
-## React Compiler
+### Security Rules (summary)
+- `canvasObjects`: read/write if authed
+- `presence/{uid}`: read if authed; write only if `request.auth.uid == uid`
+- `cursors/{uid}`: same as presence
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Features
+- Authentication
+  - Google sign-in; logout redirects to landing
+  - Auth guard: `/canvas` redirects to landing if signed out
+- Canvas interactions
+  - Pan: right-drag or Space+drag
+  - Zoom: wheel (clamped)
+  - Select: click; Delete/Backspace to remove
+  - Resize and Rotate (Transformer handles; rotation persists)
+  - Copy: Cmd/Ctrl+C duplicates selected shape with an offset
+- Shapes
+  - Rectangle, Circle, Triangle; color assigned on create
+- Real-time sync (Firestore)
+  - Full-document writes with `updatedAt: serverTimestamp()`
+  - ~100ms debounce during drags/resizes
+  - Listener orders by `updatedAt` for stable reloads
+- Multiplayer
+  - Cursors: pointer-shaped, per-user color, labeled with display name
+  - Presence avatars: initials, per-user color, shown top-left under logout
+  - Liveness: hide cursors/presence if no updates for 3 minutes
+- Routing
+  - Landing page ("Tony's Figma" + Login)
+  - `/canvas` page (fullscreen canvas, toolbar top-right, logout top-left)
 
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## Local Setup
+1) Install
+```bash
+cd collab-canvas
+npm install
+```
+2) Env vars (`.env.local`)
+```
+VITE_FIREBASE_API_KEY=
+VITE_FIREBASE_AUTH_DOMAIN=
+VITE_FIREBASE_PROJECT_ID=
+VITE_FIREBASE_STORAGE_BUCKET=
+VITE_FIREBASE_MESSAGING_SENDER_ID=
+VITE_FIREBASE_APP_ID=
+```
+3) Run
+```bash
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## Build
+```bash
+npm run build
 ```
+Output in `dist/`.
+
+## Deploy (Vercel)
+- Root Directory: `collab-canvas`
+- Build: `npm run build`
+- Output: `dist`
+- Environment: set all `VITE_FIREBASE_*` variables
+- Firebase Auth: add your `*.vercel.app` domain to Authorized domains
+- (Optional) SPA rewrite: `vercel.json`
+```json
+{ "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }] }
+```
+
+## Testing (lightweight for MVP)
+- Vitest + RTL setup included; canvas E2E/manual preferred due to DOM canvas limitations.
+
+## Performance guardrails (MVP)
+- Target ~60 FPS with 3–5 users; soft cap ~300 shapes
+
+## Roadmap (post-MVP ideas)
+- Soft-lock shapes while dragging; conditional writes to reduce overwrites
+- Rooms/sessions; pagination/virtualization for very large canvases
+- Better conflict resolution (field-level merges)
