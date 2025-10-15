@@ -22,6 +22,7 @@ export function useCursor(throttleMs: number = 100) {
 
   // Subscribe to all cursors
   useEffect(() => {
+    if (!user) return;
     const col = collection(db, 'cursors');
     // eslint-disable-next-line no-console
     console.log('[Cursors] subscribing to /cursors');
@@ -52,7 +53,7 @@ export function useCursor(throttleMs: number = 100) {
       }
     );
     return unsub;
-  }, []);
+  }, [user]);
 
   const writeCursor = useCallback(async (x: number, y: number) => {
     if (!user) return;

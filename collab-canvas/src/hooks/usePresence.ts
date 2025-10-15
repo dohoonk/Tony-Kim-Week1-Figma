@@ -23,19 +23,24 @@ export function usePresence() {
 
   // Subscribe to presence list
   useEffect(() => {
+    if (!user) return;
     const col = collection(db, 'presence');
     const unsub = onSnapshot(
       col,
       (snap) => {
         const list: PresenceUser[] = [] as any;
+        const ids: string[] = [];
         snap.forEach((d) => {
           const data = d.data() as any;
+          ids.push(d.id);
           list.push({
             uid: d.id,
             name: data.name || 'Anon',
             color: data.color || '#5b8def',
           });
         });
+        // eslint-disable-next-line no-console
+        console.log('[Presence] snapshot size:', list.length, 'ids:', ids);
         setActive(list);
       },
       (err) => {
@@ -44,7 +49,7 @@ export function usePresence() {
       }
     );
     return unsub;
-  }, []);
+  }, [user]);
 
   // Write own presence and heartbeat
   useEffect(() => {
@@ -61,6 +66,8 @@ export function usePresence() {
         },
         { merge: true }
       );
+      // eslint-disable-next-line no-console
+      console.log('[Presence] wrote presence for', user.uid);
     };
     void write();
     hbRef.current = window.setInterval(write, 60_000); // 1-minute heartbeat
