@@ -1,7 +1,7 @@
 .presence-box {
   position: absolute;
-  top: 8px;
-  right: 8px;
+  top: 48px;
+  left: 8px;
   display: flex;
   gap: 6px;
   background: rgba(255,255,255,0.9);
@@ -24,7 +24,7 @@
 }
 
 .presence-avatar.self {
-  background: #bfdbfe;
+  outline: 2px solid #1d4ed8;
 }
 
 

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { db } from '../utils/firebase';
 import { collection, deleteDoc, doc, onSnapshot, serverTimestamp, setDoc } from 'firebase/firestore';
 import { useUser } from '../context/UserContext';
+import { colorForId } from '../utils/color';
 
 export type PresenceUser = {
   uid: string;
@@ -65,7 +66,7 @@ export function usePresence() {
         ref,
         {
           name: user.displayName ?? user.email?.split('@')[0] ?? user.uid.slice(0, 6),
-          color: '#5b8def',
+          color: colorForId(user.uid),
           updatedAt: serverTimestamp(),
           expiresAt: serverTimestamp(), // TTL index handles cleanup; we won't display it
         },
@@ -86,7 +87,7 @@ export function usePresence() {
   const self = useMemo(() => {
     if (!user) return null;
     const name = user.displayName ?? user.email?.split('@')[0] ?? user.uid.slice(0, 6);
-    return { uid: user.uid, name, color: '#5b8def' } as PresenceUser;
+    return { uid: user.uid, name, color: colorForId(user.uid) } as PresenceUser;
   }, [user]);
 
   return { self, others, getInitials };

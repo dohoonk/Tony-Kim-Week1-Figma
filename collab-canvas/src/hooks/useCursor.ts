@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { db } from '../utils/firebase';
 import { collection, deleteDoc, doc, onSnapshot, serverTimestamp, setDoc } from 'firebase/firestore';
 import { useUser } from '../context/UserContext';
+import { colorForId } from '../utils/color';
 
 export type RemoteCursor = {
   uid: string;
@@ -70,7 +71,7 @@ export function useCursor(throttleMs: number = 100) {
           x,
           y,
           name: user.displayName ?? 'Anon',
-          color: '#5b8def',
+          color: colorForId(user.uid),
           updatedAt: serverTimestamp(),
         },
         { merge: true }
@@ -128,7 +129,7 @@ export function useCursor(throttleMs: number = 100) {
         x: selfPos.x,
         y: selfPos.y,
         name: user.displayName ?? 'You',
-        color: '#5b8def',
+        color: colorForId(user.uid),
       });
     }
     return Array.from(map.values());
