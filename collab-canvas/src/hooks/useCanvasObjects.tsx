@@ -21,6 +21,7 @@ export type CanvasObjectsState = {
   addShape: (type: ShapeType) => void;
   updateShape: (id: string, patch: Partial<CanvasObject>) => void;
   deleteSelected: () => void;
+  copySelected: () => void;
   select: (id: string | null) => void;
 };
 
@@ -95,11 +96,26 @@ export function CanvasObjectsProvider({ children }: { children: ReactNode }) {
     void deleteObject(id);
   }, [selectedId, deleteObject]);
 
+  const copySelected = useCallback(() => {
+    if (!selectedId) return;
+    const source = objects.find((o) => o.id === selectedId);
+    if (!source) return;
+    const dup: CanvasObject = {
+      ...source,
+      id: crypto.randomUUID(),
+      x: source.x + 24,
+      y: source.y + 24,
+    };
+    setObjects((prev) => [...prev, dup]);
+    setSelectedId(dup.id);
+    scheduleWrite(dup);
+  }, [objects, selectedId, scheduleWrite]);
+
   const select = useCallback((id: string | null) => setSelectedId(id), []);
 
   const value = useMemo(
-    () => ({ objects, selectedId, addShape, updateShape, deleteSelected, select }),
-    [objects, selectedId, addShape, updateShape, deleteSelected, select]
+    () => ({ objects, selectedId, addShape, updateShape, deleteSelected, copySelected, select }),
+    [objects, selectedId, addShape, updateShape, deleteSelected, copySelected, select]
   );
 
   return <CanvasObjectsContext.Provider value={value}>{children}</CanvasObjectsContext.Provider>;

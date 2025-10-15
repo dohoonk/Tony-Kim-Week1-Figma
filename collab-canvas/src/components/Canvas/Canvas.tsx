@@ -29,7 +29,7 @@ function InnerCanvas() {
   const [, setIsPanning] = useState(false);
   const [selfPos, setSelfPos] = useState<{ x: number; y: number } | null>(null);
 
-  const { objects, deleteSelected } = useCanvasObjects();
+  const { objects, deleteSelected, copySelected } = useCanvasObjects();
   const { updateCursor } = useCursor(100);
   const { user } = useUser();
 
@@ -56,6 +56,11 @@ function InnerCanvas() {
       if (e.code === 'Delete' || e.code === 'Backspace') {
         deleteSelected();
       }
+      const isCopy = (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'c';
+      if (isCopy) {
+        e.preventDefault();
+        copySelected();
+      }
     };
     const onKeyUp = (e: KeyboardEvent) => {
       if (e.code === 'Space') {
@@ -70,7 +75,7 @@ function InnerCanvas() {
       window.removeEventListener('keydown', onKeyDown);
       window.removeEventListener('keyup', onKeyUp);
     };
-  }, [deleteSelected]);
+  }, [deleteSelected, copySelected]);
 
   const handleContextMenu = useCallback((e: any) => {
     e.evt?.preventDefault?.();

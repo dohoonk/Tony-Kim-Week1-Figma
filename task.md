@@ -295,3 +295,15 @@ npm install --save-dev vitest @testing-library/react @testing-library/jest-dom @
 **🧪 Tests (optional for MVP):**
 - [ ] Rotating updates the `rotation` value.
 - [ ] Rotation persists across reload.
+
+---
+
+## **PR #12 – Copy / Duplicate Shapes**
+**Goal:** Allow users to duplicate the selected shape via keyboard shortcut.
+
+**Files:** `src/hooks/useCanvasObjects.tsx`, `src/components/Canvas/Canvas.tsx`
+
+**Checklist:**
+- [ ] Implement `copySelected()` that clones selected object with a small offset and new id.
+- [ ] Bind `Cmd/Ctrl + C` to copy when a shape is selected.
+- [ ] Persist duplicate via existing Firestore sync.
