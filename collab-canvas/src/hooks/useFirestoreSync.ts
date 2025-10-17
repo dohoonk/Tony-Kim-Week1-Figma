@@ -6,8 +6,9 @@ import { useUser } from '../context/UserContext';
 
 export type FirestoreSync = {
   subscribe: (onChange: (objects: CanvasObject[]) => void) => () => void;
-  writeObject: (obj: CanvasObject) => Promise<void>;
+  writeObject: (obj: CanvasObject, opts?: { immediate?: boolean }) => Promise<void>;
   deleteObject: (id: string) => Promise<void>;
+  flushPending: () => Promise<void>;
 };
 
 export function useFirestoreSync(): FirestoreSync {
@@ -38,6 +39,9 @@ export function useFirestoreSync(): FirestoreSync {
             height: (data.height as number) ?? 0,
             color: (data.color as string) ?? '#cccccc',
             rotation: (data.rotation as number) ?? 0,
+            updatedAtMs: (data.updatedAt as { toMillis?: () => number } | undefined)?.toMillis?.(),
+            lastEditedBy: (data.lastEditedBy as string) ?? undefined,
+            lastEditedAtMs: (data.lastEditedAt as { toMillis?: () => number } | undefined)?.toMillis?.(),
           });
         });
         onChange(items);
@@ -51,8 +55,28 @@ export function useFirestoreSync(): FirestoreSync {
     return unsub;
   }, [user]);
 
-  const writeObject = useCallback(async (obj: CanvasObject) => {
+  const writeObject = useCallback(async (obj: CanvasObject, opts?: { immediate?: boolean }) => {
     const now = Date.now();
+    if (opts?.immediate) {
+      const ref = doc(db, 'canvasObjects', obj.id);
+      try {
+        await setDoc(
+          ref,
+          {
+            ...obj,
+            updatedAt: serverTimestamp(),
+            lastEditedBy: user?.uid,
+            lastEditedAt: serverTimestamp(),
+          },
+          { merge: false }
+        );
+        lastEnqueueAtRef.current = now;
+      } catch (error) {
+        console.error('[Firestore] setDoc (immediate) failed for', ref.path, error);
+        throw error;
+      }
+      return;
+    }
     const recentlyEnqueued = now - lastEnqueueAtRef.current < 60; // simple cadence heuristic
     if (recentlyEnqueued) {
       // Active drag/resize → queue + batch flush with small delay (~30ms)
@@ -66,7 +90,12 @@ export function useFirestoreSync(): FirestoreSync {
           flushTimeoutRef.current = null;
           for (const it of items) {
             const ref = doc(db, 'canvasObjects', it.id);
-            batch.set(ref, { ...it, updatedAt: serverTimestamp() });
+            batch.set(ref, {
+              ...it,
+              updatedAt: serverTimestamp(),
+              lastEditedBy: user?.uid,
+              lastEditedAt: serverTimestamp(),
+            });
           }
           try {
             await batch.commit();
@@ -80,13 +109,22 @@ export function useFirestoreSync(): FirestoreSync {
     // Idle edit → write immediately (no batching, avoids >30ms extra delay)
     const ref = doc(db, 'canvasObjects', obj.id);
     try {
-      await setDoc(ref, { ...obj, updatedAt: serverTimestamp() }, { merge: false });
+      await setDoc(
+        ref,
+        {
+          ...obj,
+          updatedAt: serverTimestamp(),
+          lastEditedBy: user?.uid,
+          lastEditedAt: serverTimestamp(),
+        },
+        { merge: false }
+      );
       lastEnqueueAtRef.current = now;
     } catch (error) {
       console.error('[Firestore] setDoc failed for', ref.path, error);
       throw error;
     }
-  }, []);
+  }, [user]);
 
   const deleteObject = useCallback(async (id: string) => {
     const ref = doc(db, 'canvasObjects', id);
@@ -98,5 +136,30 @@ export function useFirestoreSync(): FirestoreSync {
     }
   }, []);
 
-  return { subscribe, writeObject, deleteObject };
+  const flushPending = useCallback(async () => {
+    if (pendingMapRef.current.size === 0) return;
+    if (flushTimeoutRef.current != null) {
+      window.clearTimeout(flushTimeoutRef.current);
+      flushTimeoutRef.current = null;
+    }
+    const batch = writeBatch(db);
+    const items = Array.from(pendingMapRef.current.values());
+    pendingMapRef.current.clear();
+    for (const it of items) {
+      const ref = doc(db, 'canvasObjects', it.id);
+      batch.set(ref, {
+        ...it,
+        updatedAt: serverTimestamp(),
+        lastEditedBy: user?.uid,
+        lastEditedAt: serverTimestamp(),
+      });
+    }
+    try {
+      await batch.commit();
+    } catch (error) {
+      console.error('[Firestore] flushPending commit failed:', error);
+    }
+  }, [user]);
+
+  return { subscribe, writeObject, deleteObject, flushPending };
 }

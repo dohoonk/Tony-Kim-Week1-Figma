@@ -11,6 +11,10 @@ export type CanvasObject = {
   height: number;
   color: string;
   rotation: number;
+  // LWW metadata (optional until next write)
+  updatedAtMs?: number;
+  lastEditedBy?: string;
+  lastEditedAtMs?: number;
 };
 
 export type CanvasObjectsState = {
