@@ -29,8 +29,9 @@ function InnerCanvas() {
   const [spaceDown, setSpaceDown] = useState(false);
   const [, setIsPanning] = useState(false);
   const [selfPos, setSelfPos] = useState<{ x: number; y: number } | null>(null);
+  const [editingTextId, setEditingTextId] = useState<string | null>(null);
 
-  const { objects, deleteSelected, copySelected } = useCanvasObjects();
+  const { objects, updateShape, deleteSelected, copySelected } = useCanvasObjects();
   const { updateCursor } = useCursor(33);
   const { user } = useUser();
 
@@ -87,6 +88,8 @@ function InnerCanvas() {
       setIsPanning(true);
       stageRef.current?.draggable(true);
     }
+    // click outside — close text editing if clicking non-input
+    setEditingTextId(null);
   }, []);
 
   const handlePointerUp = useCallback(() => {
@@ -190,7 +193,7 @@ function InnerCanvas() {
       >
         <Layer>
           {objects.map((o) => (
-            <Shape key={o.id} object={o} />
+            <Shape key={o.id} object={o} editingId={editingTextId} onEditText={(id) => setEditingTextId(id)} />
           ))}
         </Layer>
         <CursorLayer
@@ -198,6 +201,66 @@ function InnerCanvas() {
           selfCursor={selfPos && user ? { uid: user.uid, x: selfPos.x, y: selfPos.y, name: user.displayName ?? 'You', color: '#5b8def' } : undefined}
         />
       </Stage>
+      {(() => {
+        const sel = objects.find((o) => o.id === editingTextId);
+        if (!sel || sel.type !== 'text') return null;
+        const left = position.x + sel.x * scale;
+        const top = position.y + sel.y * scale;
+        const width = sel.width * scale;
+        const height = sel.height * scale;
+        return (
+          <div
+            style={{
+              position: 'absolute',
+              left,
+              top,
+              width,
+              height,
+              zIndex: 20,
+              display: 'flex',
+              gap: 6,
+              alignItems: 'center',
+              background: 'transparent',
+              pointerEvents: 'auto',
+              padding: 2,
+            }}
+            onPointerDown={(e) => e.stopPropagation()}
+          >
+            <input
+              style={{
+                flex: 1,
+                height: '100%',
+                border: '1px dashed #cbd5e1',
+                outline: 'none',
+                fontSize: `${sel.fontSize ?? 24}px`,
+                color: sel.color,
+                background: 'rgba(255,255,255,0.7)',
+                padding: '2px 6px',
+              }}
+              autoFocus
+              value={sel.text ?? ''}
+              placeholder="Type..."
+              onChange={(e) => updateShape(sel.id, { text: e.target.value })}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  (e.target as HTMLInputElement).blur();
+                  setEditingTextId(null);
+                }
+              }}
+              onBlur={() => setEditingTextId(null)}
+            />
+            <select
+              value={sel.textKind ?? 'body'}
+              onChange={(e: React.ChangeEvent<HTMLSelectElement>) => updateShape(sel.id, { textKind: e.target.value as 'heading' | 'subtitle' | 'body' })}
+              style={{ height: 28, border: '1px solid #cbd5e1', background: '#fff' }}
+            >
+              <option value="heading">Heading</option>
+              <option value="subtitle">Subtitle</option>
+              <option value="body">Body</option>
+            </select>
+          </div>
+        );
+      })()}
     </div>
   );
 }

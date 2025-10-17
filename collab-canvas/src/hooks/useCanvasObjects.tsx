@@ -1,6 +1,6 @@
 import { createContext, useContext } from 'react';
 
-export type ShapeType = 'rectangle' | 'circle' | 'triangle';
+export type ShapeType = 'rectangle' | 'circle' | 'triangle' | 'text';
 
 export type CanvasObject = {
   id: string;
@@ -15,13 +15,17 @@ export type CanvasObject = {
   updatedAtMs?: number;
   lastEditedBy?: string;
   lastEditedAtMs?: number;
+  // Text-specific (present when type === 'text')
+  text?: string;
+  fontSize?: number;
+  textKind?: 'heading' | 'subtitle' | 'body';
 };
 
 export type CanvasObjectsState = {
   objects: CanvasObject[];
   selectedId: string | null;
-  addShape: (type: ShapeType) => void;
-  updateShape: (id: string, patch: Partial<CanvasObject>) => void;
+  addShape: (type: ShapeType, initial?: Partial<CanvasObject>) => void;
+  updateShape: (id: string, patch: Partial<CanvasObject>, opts?: { immediate?: boolean }) => void;
   deleteSelected: () => void;
   copySelected: () => void;
   select: (id: string | null) => void;
@@ -38,6 +42,20 @@ function randomColor() {
 export function newShape(type: ShapeType, idx: number): CanvasObject {
   const base = { width: 160, height: 100 };
   const offset = idx * 24;
+  if (type === 'text') {
+    return {
+      id: crypto.randomUUID(),
+      type,
+      x: 120 + offset,
+      y: 120 + offset,
+      width: base.width,
+      height: base.height,
+      color: '#111827',
+      rotation: 0,
+      text: 'Text',
+      fontSize: 24,
+    };
+  }
   return {
     id: crypto.randomUUID(),
     type,

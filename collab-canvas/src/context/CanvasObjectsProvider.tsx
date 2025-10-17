@@ -11,17 +11,7 @@ export default function CanvasObjectsProvider({ children }: { children: ReactNod
 
   const { subscribe, writeObject, deleteObject, flushPending } = useFirestoreSync();
 
-  // Dynamic debounce: idle=100ms, active drag=25–50ms via simple cadence heuristic handled in writeObject batching
-  const pendingWrite = useRef<Record<string, number>>({});
-  const scheduleWrite = useCallback((obj: CanvasObject) => {
-    const key = obj.id;
-    if (pendingWrite.current[key]) window.clearTimeout(pendingWrite.current[key]);
-    const delay = 50; // UI-level debounce; writeObject may still batch at ~30ms during active drags
-    pendingWrite.current[key] = window.setTimeout(() => {
-      void writeObject(obj);
-      delete pendingWrite.current[key];
-    }, delay);
-  }, [writeObject]);
+  // Delegate batching entirely to useFirestoreSync.writeObject
 
   // ID index to prevent ghost/duplicate merges
   const idIndexRef = useRef<Set<string>>(new Set());
@@ -44,19 +34,19 @@ export default function CanvasObjectsProvider({ children }: { children: ReactNod
     });
   }, [subscribe, selectedId]);
 
-  const addShape = useCallback((type: ShapeType) => {
-    const obj = newShape(type, addCountRef.current++);
+  const addShape = useCallback((type: ShapeType, initial?: Partial<CanvasObject>) => {
+    const obj = { ...newShape(type, addCountRef.current++), ...(initial ?? {}) } as CanvasObject;
     setObjects((prev) => [...prev, obj]);
     setSelectedId(obj.id);
     // Persist immediately so a quick refresh does not drop the new object
     void writeObject(obj, { immediate: true });
   }, [writeObject]);
 
-  const updateShape = useCallback((id: string, patch: Partial<CanvasObject>) => {
+  const updateShape = useCallback((id: string, patch: Partial<CanvasObject>, opts?: { immediate?: boolean }) => {
     setObjects((prev) => prev.map((o) => (o.id === id ? { ...o, ...patch } : o)));
     const next = objects.find((o) => o.id === id);
-    if (next) scheduleWrite({ ...next, ...patch });
-  }, [objects, scheduleWrite]);
+    if (next) void writeObject({ ...next, ...patch }, opts);
+  }, [objects, writeObject]);
 
   const deleteSelected = useCallback(() => {
     if (!selectedId) return;

@@ -42,6 +42,8 @@ export function useFirestoreSync(): FirestoreSync {
             updatedAtMs: (data.updatedAt as { toMillis?: () => number } | undefined)?.toMillis?.(),
             lastEditedBy: (data.lastEditedBy as string) ?? undefined,
             lastEditedAtMs: (data.lastEditedAt as { toMillis?: () => number } | undefined)?.toMillis?.(),
+            text: (data.text as string) ?? undefined,
+            fontSize: (data.fontSize as number) ?? undefined,
           });
         });
         onChange(items);
@@ -56,20 +58,29 @@ export function useFirestoreSync(): FirestoreSync {
   }, [user]);
 
   const writeObject = useCallback(async (obj: CanvasObject, opts?: { immediate?: boolean }) => {
+    // Strip undefined and client-only fields before writing
+    const buildPayload = (o: CanvasObject) => {
+      const {
+        updatedAtMs,
+        lastEditedAtMs,
+        // any other client-only fields should not be sent
+        ...rest
+      } = o as Record<string, unknown>;
+      const base: Record<string, unknown> = { ...rest };
+      // Remove undefined keys (Firestore rejects undefined values)
+      for (const k of Object.keys(base)) {
+        if (base[k] === undefined) delete base[k];
+      }
+      base.updatedAt = serverTimestamp();
+      base.lastEditedBy = user?.uid;
+      base.lastEditedAt = serverTimestamp();
+      return base;
+    };
     const now = Date.now();
     if (opts?.immediate) {
       const ref = doc(db, 'canvasObjects', obj.id);
       try {
-        await setDoc(
-          ref,
-          {
-            ...obj,
-            updatedAt: serverTimestamp(),
-            lastEditedBy: user?.uid,
-            lastEditedAt: serverTimestamp(),
-          },
-          { merge: false }
-        );
+        await setDoc(ref, buildPayload(obj), { merge: false });
         lastEnqueueAtRef.current = now;
       } catch (error) {
         console.error('[Firestore] setDoc (immediate) failed for', ref.path, error);
@@ -77,7 +88,7 @@ export function useFirestoreSync(): FirestoreSync {
       }
       return;
     }
-    const recentlyEnqueued = now - lastEnqueueAtRef.current < 60; // simple cadence heuristic
+    const recentlyEnqueued = now - lastEnqueueAtRef.current < 40; // slightly tighter cadence to reduce queue window
     if (recentlyEnqueued) {
       // Active drag/resize → queue + batch flush with small delay (~30ms)
       lastEnqueueAtRef.current = now;
@@ -90,12 +101,7 @@ export function useFirestoreSync(): FirestoreSync {
           flushTimeoutRef.current = null;
           for (const it of items) {
             const ref = doc(db, 'canvasObjects', it.id);
-            batch.set(ref, {
-              ...it,
-              updatedAt: serverTimestamp(),
-              lastEditedBy: user?.uid,
-              lastEditedAt: serverTimestamp(),
-            });
+            batch.set(ref, buildPayload(it));
           }
           try {
             await batch.commit();
@@ -109,16 +115,7 @@ export function useFirestoreSync(): FirestoreSync {
     // Idle edit → write immediately (no batching, avoids >30ms extra delay)
     const ref = doc(db, 'canvasObjects', obj.id);
     try {
-      await setDoc(
-        ref,
-        {
-          ...obj,
-          updatedAt: serverTimestamp(),
-          lastEditedBy: user?.uid,
-          lastEditedAt: serverTimestamp(),
-        },
-        { merge: false }
-      );
+      await setDoc(ref, buildPayload(obj), { merge: false });
       lastEnqueueAtRef.current = now;
     } catch (error) {
       console.error('[Firestore] setDoc failed for', ref.path, error);
@@ -145,14 +142,21 @@ export function useFirestoreSync(): FirestoreSync {
     const batch = writeBatch(db);
     const items = Array.from(pendingMapRef.current.values());
     pendingMapRef.current.clear();
+    // Reuse same sanitizer as writeObject
+    const buildPayload = (o: CanvasObject) => {
+      const { updatedAtMs, lastEditedAtMs, ...rest } = o as Record<string, unknown>;
+      const base: Record<string, unknown> = { ...rest };
+      for (const k of Object.keys(base)) {
+        if (base[k] === undefined) delete base[k];
+      }
+      base.updatedAt = serverTimestamp();
+      base.lastEditedBy = user?.uid;
+      base.lastEditedAt = serverTimestamp();
+      return base;
+    };
     for (const it of items) {
       const ref = doc(db, 'canvasObjects', it.id);
-      batch.set(ref, {
-        ...it,
-        updatedAt: serverTimestamp(),
-        lastEditedBy: user?.uid,
-        lastEditedAt: serverTimestamp(),
-      });
+      batch.set(ref, buildPayload(it));
     }
     try {
       await batch.commit();

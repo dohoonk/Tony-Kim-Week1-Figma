@@ -1,108 +1,118 @@
-import { Circle as KCircle, Group, Rect as KRect, RegularPolygon, Transformer } from 'react-konva';
+import { Circle as KCircle, Group, Rect as KRect, RegularPolygon, Transformer, Text as KText } from 'react-konva';
 import type Konva from 'konva';
 import { useEffect, useRef } from 'react';
 import { useCanvasObjects } from '../../hooks/useCanvasObjects';
 import type { CanvasObject } from '../../hooks/useCanvasObjects';
 
-export default function Shape({ object }: { object: CanvasObject }) {
+export default function Shape({ object, editingId, onEditText }: { object: CanvasObject; editingId?: string | null; onEditText?: (id: string) => void }) {
   const { selectedId, select, updateShape } = useCanvasObjects();
   const isSelected = selectedId === object.id;
-  const nodeRef = useRef<Konva.Node>(null);
+  const nodeRef = useRef<Konva.Group>(null);
   const trRef = useRef<Konva.Transformer>(null);
 
   useEffect(() => {
     if (isSelected && nodeRef.current && trRef.current) {
-      trRef.current?.nodes([nodeRef.current]);
-      trRef.current?.getLayer()?.batchDraw();
+      trRef.current.nodes([nodeRef.current]);
+      trRef.current.getLayer()?.batchDraw();
     }
-  }, [isSelected]);
+  }, [isSelected, object.id]);
 
-  const handleDragEnd = (e: any) => {
-    const node = e.target as Konva.Node & { x: () => number; y: () => number };
+  const handleDragEnd = () => {
+    const node = nodeRef.current;
+    if (!node) return;
     let newX = node.x();
     let newY = node.y();
-    // Center-based nodes need converting back to top-left
-    if (object.type !== 'rectangle') {
-      newX = newX - object.width / 2;
-      newY = newY - object.height / 2;
-    }
-    updateShape(object.id, { x: newX, y: newY });
+    // Group is positioned by top-left for all shapes
+    updateShape(object.id, { x: newX, y: newY }, { immediate: true });
   };
 
   const handleTransformEnd = () => {
-    const node = nodeRef.current as any;
+    const node = nodeRef.current;
     if (!node) return;
-
     const scaleX = node.scaleX();
     const scaleY = node.scaleY();
-
     const width = Math.max(20, object.width * scaleX);
     const height = Math.max(20, object.height * scaleY);
-
     node.scaleX(1);
     node.scaleY(1);
-
     let newX = node.x();
     let newY = node.y();
-    if (object.type !== 'rectangle') {
-      newX = newX - width / 2;
-      newY = newY - height / 2;
+    // Group is positioned by top-left for all shapes
+    const newRotation = node.rotation();
+    const patch: Partial<CanvasObject> = { x: newX, y: newY, width, height, rotation: newRotation };
+    if (object.type === 'text') {
+      const fontSize = Math.max(10, (object.fontSize ?? 24) * scaleY);
+      Object.assign(patch, { fontSize });
     }
-
-    const newRotation = node.rotation() as number;
-    updateShape(object.id, { x: newX, y: newY, width, height, rotation: newRotation });
+    updateShape(object.id, patch, { immediate: true });
   };
 
-  const commonProps = {
+  const groupProps = {
+    x: object.x,
+    y: object.y,
     draggable: true,
     onDragEnd: handleDragEnd,
     onClick: () => select(object.id),
-    ref: nodeRef as any,
-    rotation: object.rotation,
+    onTap: () => select(object.id),
+    onDblClick: () => { if (object.type === 'text') onEditText?.(object.id); },
+    onDblTap: () => { if (object.type === 'text') onEditText?.(object.id); },
     onTransformEnd: handleTransformEnd,
+    rotation: object.rotation,
   };
 
   return (
-    <Group>
-      {object.type === 'rectangle' && (
-        <KRect
-          x={object.x}
-          y={object.y}
-          width={object.width}
-          height={object.height}
-          fill={object.color}
-          cornerRadius={8}
-          {...commonProps}
-        />
-      )}
-      {object.type === 'circle' && (
-        <KCircle
-          x={object.x + object.width / 2}
-          y={object.y + object.height / 2}
-          radius={Math.min(object.width, object.height) / 2}
-          fill={object.color}
-          {...commonProps}
-        />
-      )}
-      {object.type === 'triangle' && (
-        <RegularPolygon
-          x={object.x + object.width / 2}
-          y={object.y + object.height / 2}
-          sides={3}
-          radius={Math.min(object.width, object.height) / 2}
-          fill={object.color}
-          {...commonProps}
-        />
-      )}
-      {isSelected && (
+    <>
+      <Group ref={nodeRef} {...groupProps}>
+        {object.type === 'rectangle' && (
+          <KRect
+            x={0}
+            y={0}
+            width={object.width}
+            height={object.height}
+            fill={object.color}
+            cornerRadius={8}
+          />
+        )}
+        {object.type === 'circle' && (
+          <KCircle
+            x={object.width / 2}
+            y={object.height / 2}
+            radius={Math.min(object.width, object.height) / 2}
+            fill={object.color}
+          />
+        )}
+        {object.type === 'triangle' && (
+          <RegularPolygon
+            x={object.width / 2}
+            y={object.height / 2}
+            sides={3}
+            radius={Math.min(object.width, object.height) / 2}
+            fill={object.color}
+          />
+        )}
+        {object.type === 'text' && (
+          <KText
+            x={0}
+            y={0}
+            width={object.width}
+            height={object.height}
+            text={(object.textKind === 'heading' ? (object.text || 'Heading') : object.text) ?? 'Text'}
+            fontSize={
+              object.fontSize ?? (object.textKind === 'heading' ? 32 : object.textKind === 'subtitle' ? 20 : 16)
+            }
+            fill={object.color}
+          />
+        )}
+      </Group>
+      {isSelected && editingId !== object.id && (
         <Transformer
-          ref={trRef as any}
+          ref={trRef}
           rotateEnabled={true}
           rotationSnaps={[0, 90, 180, 270]}
           rotateAnchorOffset={20}
           enabledAnchors={['top-left', 'top-right', 'bottom-left', 'bottom-right']}
         />
       )}
-    </Group>
+    </>
   );
 }
