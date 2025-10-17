@@ -2,7 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Stage, Layer } from 'react-konva';
 import type Konva from 'konva';
 import '../../styles/Canvas.css';
-import { CanvasObjectsProvider, useCanvasObjects } from '../../hooks/useCanvasObjects';
+import CanvasObjectsProvider from '../../context/CanvasObjectsProvider';
+import { useCanvasObjects } from '../../hooks/useCanvasObjects';
 import CanvasToolbar from './CanvasToolbar';
 import Shape from './Shape';
 import CursorLayer from './CursorLayer';
@@ -30,7 +31,7 @@ function InnerCanvas() {
   const [selfPos, setSelfPos] = useState<{ x: number; y: number } | null>(null);
 
   const { objects, deleteSelected, copySelected } = useCanvasObjects();
-  const { updateCursor } = useCursor(100);
+  const { updateCursor } = useCursor(33);
   const { user } = useUser();
 
   useEffect(() => {
@@ -77,11 +78,11 @@ function InnerCanvas() {
     };
   }, [deleteSelected, copySelected]);
 
-  const handleContextMenu = useCallback((e: any) => {
+  const handleContextMenu = useCallback((e: { evt?: { preventDefault?: () => void } }) => {
     e.evt?.preventDefault?.();
   }, []);
 
-  const handlePointerDown = useCallback((e: any) => {
+  const handlePointerDown = useCallback((e: { evt?: { button?: number } }) => {
     if (e.evt?.button === 2) {
       setIsPanning(true);
       stageRef.current?.draggable(true);
@@ -110,7 +111,6 @@ function InnerCanvas() {
     // Convert screen to stage coordinates considering scale and position
     const x = (pointer.x - position.x) / scale;
     const y = (pointer.y - position.y) / scale;
-    // eslint-disable-next-line no-console
     console.debug('[Canvas] mouseMove', { pointer, stagePos: position, scale, world: { x, y } });
     updateCursor(x, y);
     setSelfPos({ x, y });
@@ -134,7 +134,7 @@ function InnerCanvas() {
     return () => window.removeEventListener('pointermove', onDocPointerMove);
   }, [position, scale, updateCursor]);
 
-  const handleWheel = useCallback((e: any) => {
+  const handleWheel = useCallback((e: { evt: { preventDefault: () => void; deltaY: number } }) => {
     e.evt.preventDefault();
     const s = stageRef.current;
     if (!s) return;

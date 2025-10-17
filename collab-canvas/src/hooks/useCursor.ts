@@ -12,7 +12,7 @@ export type RemoteCursor = {
   color?: string;
 };
 
-export function useCursor(throttleMs: number = 100) {
+export function useCursor(throttleMs: number = 33) {
   const { user } = useUser();
   const [cursors, setCursors] = useState<RemoteCursor[]>([]);
   const [selfPos, setSelfPos] = useState<{ x: number; y: number } | null>(null);
@@ -25,37 +25,34 @@ export function useCursor(throttleMs: number = 100) {
   useEffect(() => {
     if (!user) return;
     const col = collection(db, 'cursors');
-    // eslint-disable-next-line no-console
     console.log('[Cursors] subscribing to /cursors');
     const unsub = onSnapshot(
       col,
       (snap) => {
         const now = Date.now();
         const freshnessMs = 3 * 60 * 1000; // 3 minutes
-        const items: RemoteCursor[] = [] as any;
+        const items: RemoteCursor[] = [];
         const ids: string[] = [];
         snap.forEach((d) => {
-          const data = d.data() as any;
+          const data = d.data() as Record<string, unknown>;
           if (!data) return;
-          const updatedAt: any = data.updatedAt;
+          const updatedAt = data.updatedAt as { toMillis?: () => number } | undefined;
           const updatedAtMs = updatedAt?.toMillis ? updatedAt.toMillis() : 0;
           if (now - updatedAtMs > freshnessMs) return; // stale cursor hidden
           ids.push(d.id);
           items.push({
             uid: d.id,
-            x: data.x ?? 0,
-            y: data.y ?? 0,
-            name: data.name ?? '',
-            color: data.color ?? '#5b8def',
+            x: (data.x as number) ?? 0,
+            y: (data.y as number) ?? 0,
+            name: (data.name as string) ?? '',
+            color: (data.color as string) ?? '#5b8def',
           });
         });
-        // eslint-disable-next-line no-console
         console.log('[Cursors] snapshot size (fresh):', items.length, 'ids:', ids);
         setCursors(items);
       },
       (error) => {
-        // eslint-disable-next-line no-console
-        console.error('[Firestore] onSnapshot error for \/cursors:', error);
+        console.error('[Firestore] onSnapshot error for /cursors:', error);
       }
     );
     return unsub;
@@ -76,15 +73,13 @@ export function useCursor(throttleMs: number = 100) {
         },
         { merge: true }
       );
-      // eslint-disable-next-line no-console
       console.log('[Cursors] wrote', { x, y });
     } catch (error) {
-      // eslint-disable-next-line no-console
       console.error('[Firestore] setDoc failed for', ref.path, error);
     }
   }, [user]);
 
-  // Throttled update function
+  // Throttled update function (network throttle ~25–50ms; local interpolation is handled by consumer)
   const updateCursor = useCallback(
     (x: number, y: number) => {
       if (!user) return;
