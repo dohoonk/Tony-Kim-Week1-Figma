@@ -23,15 +23,16 @@ export default function ConnectionStatus() {
     <div
       style={{
         position: 'absolute',
-        top: 8,
-        left: 110,
+        top: 12,
+        right: 12,
         background: bg,
         border: `1px solid ${border}`,
         color,
-        borderRadius: 6,
-        padding: '4px 8px',
-        fontSize: 12,
-        zIndex: 12,
+        borderRadius: 8,
+        padding: '6px 10px',
+        fontSize: 13,
+        zIndex: 20,
+        boxShadow: '0 2px 8px rgba(15,23,42,0.08)'
       }}
     >
       {text}
