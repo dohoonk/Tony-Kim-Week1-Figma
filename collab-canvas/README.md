@@ -24,6 +24,15 @@ A real-time collaborative design canvas built with React, Konva, and Firebase. M
 - `presence/{uid}`: read if authed; write only if `request.auth.uid == uid`
 - `cursors/{uid}`: same as presence
 
+## Conflict Resolution & State Management
+- Last-Write-Wins (LWW): full-object writes; Firestore `serverTimestamp()` on `updatedAt` decides order.
+- Metadata: each write includes `lastEditedBy` and `lastEditedAt` (server). We do not show a permanent badge.
+- Visual feedback (halo strategy): when an object changes and the editor is not you, we render a dashed halo around the object in the editor’s presence color for ~1.5s, then fade. This is local-only UI state; no extra fields are written.
+- In-memory ID index: prevents ghost/duplicate objects during merges and reconnects.
+- Optimistic/batching: active drags are batched (~40–100ms window), with a brief (≈300ms) remote-echo suppression to avoid flicker after local commits.
+- Offline queue: up to 1 minute of operations are queued and replayed on reconnect; new/duplicate objects write immediately to avoid loss on refresh.
+- Flush on page hide: pending writes flush on `visibilitychange`, `pagehide`, and `beforeunload`.
+
 ## Features
 - Authentication
   - Google sign-in; logout redirects to landing
