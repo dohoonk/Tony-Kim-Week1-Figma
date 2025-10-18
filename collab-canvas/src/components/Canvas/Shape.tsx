@@ -17,7 +17,7 @@ export default function Shape({ object, editingId, onEditText }: { object: Canva
       trRef.current.nodes([nodeRef.current]);
       trRef.current.getLayer()?.batchDraw();
     }
-  }, [isSelected, object.id]);
+  }, [isSelected, object.id, object.width, object.height, object.rotation]);
 
   const handleDragEnd = () => {
     const node = nodeRef.current;
@@ -54,6 +54,11 @@ export default function Shape({ object, editingId, onEditText }: { object: Canva
       Object.assign(patch, { fontSize });
     }
     updateShape(object.id, patch, { immediate: true });
+    // force transformer to recompute box
+    if (trRef.current && nodeRef.current) {
+      trRef.current.nodes([nodeRef.current]);
+      trRef.current.getLayer()?.batchDraw();
+    }
   };
 
   const groupProps = {
@@ -188,7 +193,7 @@ export default function Shape({ object, editingId, onEditText }: { object: Canva
           rotateEnabled={true}
           rotationSnaps={[0, 90, 180, 270]}
           rotateAnchorOffset={20}
-          enabledAnchors={['top-left', 'top-right', 'bottom-left', 'bottom-right']}
+          enabledAnchors={['top-left', 'top-right', 'bottom-left', 'bottom-right', 'middle-right', 'bottom-center']}
         />
       )}
     </>

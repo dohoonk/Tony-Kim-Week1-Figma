@@ -337,8 +337,15 @@ function InnerCanvas() {
                   <option value="Courier New, monospace">Courier</option>
                 </select>
                 <select
-                  value={String((anchor as unknown as { fontSize?: number }).fontSize ?? 16)}
-                  onChange={(e) => { const map: Record<string, number> = { s: 14, m: 16, l: 20, xl: 28 }; const v = e.target.value as keyof typeof map; const size = map[v] ?? Number(e.target.value); for (const o of selected) updateShape(o.id, { fontSize: size }, { immediate: true }); }}
+                  value={(() => {
+                    const a = anchor as unknown as { fontSize?: number; textKind?: 'heading' | 'subtitle' | 'body' };
+                    const px = a.fontSize ?? (a.textKind === 'heading' ? 32 : a.textKind === 'subtitle' ? 20 : 16);
+                    if (px <= 15) return 's';
+                    if (px <= 18) return 'm';
+                    if (px <= 24) return 'l';
+                    return 'xl';
+                  })()}
+                  onChange={(e) => { const map: Record<string, number> = { s: 14, m: 16, l: 20, xl: 28 }; const v = e.target.value as keyof typeof map; const size = map[v]; for (const o of selected) updateShape(o.id, { fontSize: size }, { immediate: true }); }}
                   style={{ border: '1px solid #cbd5e1', height: 28, borderRadius: 6 }}
                 >
                   <option value="s">S</option>
