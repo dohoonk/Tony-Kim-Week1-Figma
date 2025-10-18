@@ -120,7 +120,7 @@ export function useFirestoreSync(): FirestoreSync {
           } catch (error) {
             console.error('[Firestore] writeBatch commit failed:', error);
           }
-        }, 30);
+        }, 100);
       }
       return;
     }

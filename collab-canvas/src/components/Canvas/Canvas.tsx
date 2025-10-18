@@ -36,7 +36,7 @@ function InnerCanvas() {
   const [editingTextId, setEditingTextId] = useState<string | null>(null);
 
   const { objects, selectedId, updateShape, deleteSelected, copySelected } = useCanvasObjects();
-  const { updateCursor } = useCursor(33);
+  const { updateCursor } = useCursor(150);
   const { user } = useUser();
 
   useEffect(() => {
