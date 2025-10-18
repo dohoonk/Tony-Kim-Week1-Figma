@@ -5,10 +5,12 @@ import { useCanvasObjects } from '../../hooks/useCanvasObjects';
 import type { CanvasObject } from '../../hooks/useCanvasObjects';
 
 export default function Shape({ object, editingId, onEditText }: { object: CanvasObject; editingId?: string | null; onEditText?: (id: string) => void }) {
-  const { selectedId, select, updateShape } = useCanvasObjects();
+  const { selectedId, selectedIds, select, updateShape, beginGroupDrag, updateGroupDrag, commitGroupDrag } = useCanvasObjects();
   const isSelected = selectedId === object.id;
+  const isMultiSelected = selectedIds.includes(object.id);
   const nodeRef = useRef<Konva.Group>(null);
   const trRef = useRef<Konva.Transformer>(null);
+  const dragStartRef = useRef<{ x: number; y: number } | null>(null);
 
   useEffect(() => {
     if (isSelected && nodeRef.current && trRef.current) {
@@ -20,10 +22,17 @@ export default function Shape({ object, editingId, onEditText }: { object: Canva
   const handleDragEnd = () => {
     const node = nodeRef.current;
     if (!node) return;
-    let newX = node.x();
-    let newY = node.y();
+    const newX = node.x();
+    const newY = node.y();
     // Group is positioned by top-left for all shapes
-    updateShape(object.id, { x: newX, y: newY }, { immediate: true });
+    const start = dragStartRef.current ?? { x: object.x, y: object.y };
+    const dx = newX - start.x;
+    const dy = newY - start.y;
+    if (selectedIds.length > 1 && selectedIds.includes(object.id)) {
+      commitGroupDrag(object.id, dx, dy);
+    } else {
+      updateShape(object.id, { x: newX, y: newY }, { immediate: true });
+    }
   };
 
   const handleTransformEnd = () => {
@@ -35,8 +44,8 @@ export default function Shape({ object, editingId, onEditText }: { object: Canva
     const height = Math.max(20, object.height * scaleY);
     node.scaleX(1);
     node.scaleY(1);
-    let newX = node.x();
-    let newY = node.y();
+    const newX = node.x();
+    const newY = node.y();
     // Group is positioned by top-left for all shapes
     const newRotation = node.rotation();
     const patch: Partial<CanvasObject> = { x: newX, y: newY, width, height, rotation: newRotation };
@@ -52,7 +61,24 @@ export default function Shape({ object, editingId, onEditText }: { object: Canva
     y: object.y,
     draggable: true,
     onDragEnd: handleDragEnd,
-    onClick: () => select(object.id),
+    onDragStart: () => {
+      if (selectedIds.length > 1 && selectedIds.includes(object.id)) {
+        beginGroupDrag(object.id);
+      }
+      // capture anchor start position to compute stable deltas
+      dragStartRef.current = { x: object.x, y: object.y };
+    },
+    onDragMove: () => {
+      const node = nodeRef.current;
+      if (!node) return;
+      const start = dragStartRef.current ?? { x: object.x, y: object.y };
+      const dx = node.x() - start.x;
+      const dy = node.y() - start.y;
+      if (selectedIds.length > 1 && selectedIds.includes(object.id)) {
+        updateGroupDrag(object.id, dx, dy);
+      }
+    },
+    onClick: (e: { evt?: { shiftKey?: boolean } }) => select(object.id, !!e?.evt?.shiftKey),
     onTap: () => select(object.id),
     onDblClick: () => { if (object.type === 'text') onEditText?.(object.id); },
     onDblTap: () => { if (object.type === 'text') onEditText?.(object.id); },
@@ -101,6 +127,18 @@ export default function Shape({ object, editingId, onEditText }: { object: Canva
               object.fontSize ?? (object.textKind === 'heading' ? 32 : object.textKind === 'subtitle' ? 20 : 16)
             }
             fill={object.color}
+          />
+        )}
+        {isMultiSelected && (
+          <KRect
+            x={0}
+            y={0}
+            width={object.width}
+            height={object.height}
+            stroke={'#6366f1'}
+            dash={[4, 3]}
+            strokeWidth={1}
+            listening={false}
           />
         )}
       </Group>

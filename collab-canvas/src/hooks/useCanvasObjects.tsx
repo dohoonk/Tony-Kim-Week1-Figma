@@ -24,11 +24,16 @@ export type CanvasObject = {
 export type CanvasObjectsState = {
   objects: CanvasObject[];
   selectedId: string | null;
+  selectedIds: string[];
   addShape: (type: ShapeType, initial?: Partial<CanvasObject>) => void;
   updateShape: (id: string, patch: Partial<CanvasObject>, opts?: { immediate?: boolean }) => void;
   deleteSelected: () => void;
   copySelected: () => void;
-  select: (id: string | null) => void;
+  select: (id: string | null, additive?: boolean) => void;
+  selectMany: (ids: string[]) => void;
+  beginGroupDrag: (anchorId: string) => void;
+  updateGroupDrag: (anchorId: string, dx: number, dy: number) => void;
+  commitGroupDrag: (anchorId: string, dx: number, dy: number) => void;
   undo: () => void;
   redo: () => void;
 };

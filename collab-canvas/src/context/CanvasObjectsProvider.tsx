@@ -8,7 +8,16 @@ import { useHistory } from '../hooks/useHistory';
 export default function CanvasObjectsProvider({ children }: { children: ReactNode }) {
   const [objects, setObjects] = useState<CanvasObject[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const addCountRef = useRef(0);
+  const dragOriginRef = useRef<{ [id: string]: { x: number; y: number } } | null>(null);
+  // Suppress brief remote echoes after optimistic local commits to avoid flicker/ghosting
+  const suppressRemoteRef = useRef<Map<string, number>>(new Map());
+  const suppressRemoteFor = useCallback((ids: string[], ms = 300) => {
+    const until = Date.now() + ms;
+    const map = suppressRemoteRef.current;
+    for (const id of ids) map.set(id, until);
+  }, []);
 
   const { subscribe, writeObject, deleteObject, flushPending } = useFirestoreSync();
   const history = useHistory();
@@ -24,8 +33,17 @@ export default function CanvasObjectsProvider({ children }: { children: ReactNod
       idIndexRef.current.clear();
       for (const o of remote) idIndexRef.current.add(o.id);
       setObjects((prev) => {
+        const now = Date.now();
         const next = new Map<string, typeof prev[number]>();
-        for (const r of remote) next.set(r.id, r);
+        for (const r of remote) {
+          const suppressUntil = suppressRemoteRef.current.get(r.id) ?? 0;
+          if (suppressUntil > now) {
+            const local = prev.find((p) => p.id === r.id);
+            next.set(r.id, local ?? r);
+          } else {
+            next.set(r.id, r);
+          }
+        }
         // If any local IDs not present remotely (e.g., optimistic), keep them
         for (const p of prev) if (!next.has(p.id)) next.set(p.id, p);
         return Array.from(next.values());
@@ -33,6 +51,7 @@ export default function CanvasObjectsProvider({ children }: { children: ReactNod
       if (selectedId && !remote.find((o) => o.id === selectedId)) {
         setSelectedId(null);
       }
+      setSelectedIds((prev) => prev.filter((id) => remote.some((o) => o.id === id)));
     });
   }, [subscribe, selectedId]);
 
@@ -46,6 +65,7 @@ export default function CanvasObjectsProvider({ children }: { children: ReactNod
       return [...prev, obj];
     });
     setSelectedId(obj.id);
+    setSelectedIds([obj.id]);
     // Persist immediately so a quick refresh does not drop the new object
     void writeObject(obj, { immediate: true });
   }, [writeObject]);
@@ -63,7 +83,10 @@ export default function CanvasObjectsProvider({ children }: { children: ReactNod
       return prev.map((o) => (o.id === id ? { ...o, ...patch } : o));
     });
     const next = objects.find((o) => o.id === id);
-    if (next) void writeObject({ ...next, ...patch }, opts);
+    if (next) {
+      suppressRemoteFor([id]);
+      void writeObject({ ...next, ...patch }, opts);
+    }
   }, [objects, writeObject]);
 
   const deleteSelected = useCallback(() => {
@@ -78,6 +101,7 @@ export default function CanvasObjectsProvider({ children }: { children: ReactNod
       return prev.filter((o) => o.id !== id);
     });
     setSelectedId(null);
+    setSelectedIds([]);
     void deleteObject(id);
   }, [selectedId, deleteObject]);
 
@@ -99,18 +123,73 @@ export default function CanvasObjectsProvider({ children }: { children: ReactNod
       return [...prev, dup];
     });
     setSelectedId(dup.id);
+    setSelectedIds([dup.id]);
     // Persist immediately to avoid losing the duplicate on refresh
     void writeObject(dup, { immediate: true });
   }, [objects, selectedId, writeObject]);
 
-  const select = useCallback((id: string | null) => setSelectedId(id), []);
+  const select = useCallback((id: string | null, additive?: boolean) => {
+    if (id == null) {
+      setSelectedId(null);
+      setSelectedIds([]);
+      return;
+    }
+    setSelectedId(id);
+    setSelectedIds((prev) => {
+      if (!additive) return [id];
+      return prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id];
+    });
+  }, []);
+
+  const selectMany = useCallback((ids: string[]) => {
+    setSelectedIds(ids);
+    setSelectedId(ids[0] ?? null);
+  }, []);
 
   const value = useMemo(
-    () => ({ objects, selectedId, addShape, updateShape, deleteSelected, copySelected, select,
+    () => ({ objects, selectedId, selectedIds, addShape, updateShape, deleteSelected, copySelected, select, selectMany,
+      beginGroupDrag: (anchorId: string) => {
+        if (!selectedIds.includes(anchorId) || selectedIds.length <= 1) {
+          dragOriginRef.current = null;
+          return;
+        }
+        const origins: { [id: string]: { x: number; y: number } } = {};
+        for (const id of selectedIds) {
+          const o = objects.find((x) => x.id === id);
+          if (o) origins[id] = { x: o.x, y: o.y };
+        }
+        dragOriginRef.current = origins;
+      },
+      updateGroupDrag: (_anchorId: string, dx: number, dy: number) => {
+        const origins = dragOriginRef.current;
+        if (!origins) return;
+        setObjects((prev) => prev.map((o) => (origins[o.id] ? { ...o, x: origins[o.id].x + dx, y: origins[o.id].y + dy } : o)));
+      },
+      commitGroupDrag: (_anchorId: string, dx: number, dy: number) => {
+        const origins = dragOriginRef.current;
+        if (!origins) return;
+        const changed: CanvasObject[] = [];
+        setObjects((prev) => prev.map((o) => {
+          if (!origins[o.id]) return o;
+          const next = { ...o, x: origins[o.id].x + dx, y: origins[o.id].y + dy };
+          changed.push(next);
+          return next;
+        }));
+        // Single history entry for the group
+        history.push({
+          apply: (list) => list.map((o) => (origins[o.id] ? { ...o, x: origins[o.id].x + dx, y: origins[o.id].y + dy } : o)),
+          revert: (list) => list.map((o) => (origins[o.id] ? { ...o, x: origins[o.id].x, y: origins[o.id].y } : o)),
+        });
+        suppressRemoteFor(changed.map((c) => c.id));
+        for (const obj of changed) {
+          void writeObject(obj, { immediate: true });
+        }
+        dragOriginRef.current = null;
+      },
       undo: () => history.undo(objects, setObjects),
       redo: () => history.redo(objects, setObjects),
     }),
-    [objects, selectedId, addShape, updateShape, deleteSelected, copySelected, select]
+    [objects, selectedId, selectedIds, addShape, updateShape, deleteSelected, copySelected, select]
   );
 
   // Flush any pending batched writes when the tab goes hidden or unloads

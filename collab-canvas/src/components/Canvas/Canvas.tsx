@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Stage, Layer } from 'react-konva';
+import { Stage, Layer, Rect as KRect } from 'react-konva';
 import type Konva from 'konva';
 import '../../styles/Canvas.css';
 import CanvasObjectsProvider from '../../context/CanvasObjectsProvider';
@@ -15,6 +15,7 @@ import PresenceBox from './PresenceBox';
 import LogoutButton from '../Auth/LogoutButton';
 import CommandInput from '../AI/CommandInput';
 import ConnectionStatus from '../UI/ConnectionStatus';
+import ComponentPanel from './ComponentPanel';
 
 const MIN_SCALE = 0.25;
 const MAX_SCALE = 4;
@@ -34,8 +35,10 @@ function InnerCanvas() {
   const [, setIsPanning] = useState(false);
   const [selfPos, setSelfPos] = useState<{ x: number; y: number } | null>(null);
   const [editingTextId, setEditingTextId] = useState<string | null>(null);
+  const [marqueeStart, setMarqueeStart] = useState<{ x: number; y: number } | null>(null);
+  const [marqueeRect, setMarqueeRect] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
 
-  const { objects, selectedId, updateShape, deleteSelected, copySelected, undo, redo } = useCanvasObjects();
+  const { objects, selectedId, updateShape, deleteSelected, copySelected, undo, redo, selectMany } = useCanvasObjects();
   const { updateCursor } = useCursor(150);
   const { user } = useUser();
 
@@ -108,21 +111,53 @@ function InnerCanvas() {
     e.evt?.preventDefault?.();
   }, []);
 
-  const handlePointerDown = useCallback((e: { evt?: { button?: number } }) => {
+  const handlePointerDown = useCallback((e: Konva.KonvaEventObject<MouseEvent>) => {
     if (e.evt?.button === 2) {
       setIsPanning(true);
       stageRef.current?.draggable(true);
     }
     // click outside — close text editing if clicking non-input
     setEditingTextId(null);
-  }, []);
+    // start marquee if left click on empty stage area (no shape) and not panning
+    const s = stageRef.current;
+    if (!s) return;
+    const clickedOnEmpty = e.target === s;
+    if (e.evt?.button === 0 && clickedOnEmpty && !spaceDown) {
+      const pointer = s.getPointerPosition();
+      if (!pointer) return;
+      const worldX = (pointer.x - position.x) / scale;
+      const worldY = (pointer.y - position.y) / scale;
+      setMarqueeStart({ x: worldX, y: worldY });
+      setMarqueeRect({ x: worldX, y: worldY, width: 0, height: 0 });
+    }
+  }, [position.x, position.y, scale, spaceDown]);
 
   const handlePointerUp = useCallback(() => {
     if (!spaceDown) {
       setIsPanning(false);
       stageRef.current?.draggable(false);
     }
-  }, [spaceDown]);
+    // finish marquee selection
+    if (marqueeStart && marqueeRect) {
+      const rx = marqueeRect.width >= 0 ? marqueeRect.x : marqueeRect.x + marqueeRect.width;
+      const ry = marqueeRect.height >= 0 ? marqueeRect.y : marqueeRect.y + marqueeRect.height;
+      const rw = Math.abs(marqueeRect.width);
+      const rh = Math.abs(marqueeRect.height);
+      const selected = objects
+        .filter((o) => {
+          const ox = o.x;
+          const oy = o.y;
+          const ow = o.width;
+          const oh = o.height;
+          // simple rect intersection
+          return ox < rx + rw && ox + ow > rx && oy < ry + rh && oy + oh > ry;
+        })
+        .map((o) => o.id);
+      selectMany(selected);
+    }
+    setMarqueeStart(null);
+    setMarqueeRect(null);
+  }, [spaceDown, marqueeStart, marqueeRect, objects, selectMany]);
 
   const handleDragMove = useCallback(() => {
     const s = stageRef.current;
@@ -142,7 +177,11 @@ function InnerCanvas() {
     console.debug('[Canvas] mouseMove', { pointer, stagePos: position, scale, world: { x, y } });
     updateCursor(x, y);
     setSelfPos({ x, y });
-  }, [position, scale, updateCursor]);
+    // update marquee shape
+    if (marqueeStart) {
+      setMarqueeRect({ x: marqueeStart.x, y: marqueeStart.y, width: x - marqueeStart.x, height: y - marqueeStart.y });
+    }
+  }, [position, scale, updateCursor, marqueeStart]);
 
   // Ensure cursor keeps updating even when dragging shapes (document-level pointermove)
   useEffect(() => {
@@ -212,8 +251,8 @@ function InnerCanvas() {
           ref={stageRef}
           {...stageProps}
           onWheel={handleWheel}
-          onContentMousedown={handlePointerDown}
-          onContentMouseup={handlePointerUp}
+          onMouseDown={handlePointerDown}
+          onMouseUp={handlePointerUp}
           onDragMove={handleDragMove}
           onMouseMove={handleMouseMove}
           onContextMenu={handleContextMenu}
@@ -225,11 +264,26 @@ function InnerCanvas() {
               <Shape key={o.id} object={o} editingId={editingTextId} onEditText={(id) => setEditingTextId(id)} />
             ))}
           </Layer>
+          {marqueeRect && (
+            <Layer listening={false}>
+              <KRect
+                x={Math.min(marqueeRect.x, marqueeRect.x + marqueeRect.width)}
+                y={Math.min(marqueeRect.y, marqueeRect.y + marqueeRect.height)}
+                width={Math.abs(marqueeRect.width)}
+                height={Math.abs(marqueeRect.height)}
+                stroke="#4f46e5"
+                dash={[6, 4]}
+                strokeWidth={1}
+                fill="rgba(79,70,229,0.08)"
+              />
+            </Layer>
+          )}
           <CursorLayer
             scale={scale}
             selfCursor={selfPos && user ? { uid: user.uid, x: selfPos.x, y: selfPos.y, name: user.displayName ?? 'You', color: '#5b8def' } : undefined}
           />
         </Stage>
+        <ComponentPanel />
       </CanvasViewProvider>
       <CommandInput />
       {(() => {
