@@ -40,6 +40,7 @@ export function useFirestoreSync(): FirestoreSync {
             width: (data.width as number) ?? 0,
             height: (data.height as number) ?? 0,
             color: (data.color as string) ?? '#cccccc',
+            order: (data.order as number) ?? undefined,
             opacity: (data.opacity as number) ?? 1,
             rotation: (data.rotation as number) ?? 0,
             updatedAtMs: (data.updatedAt as { toMillis?: () => number } | undefined)?.toMillis?.(),

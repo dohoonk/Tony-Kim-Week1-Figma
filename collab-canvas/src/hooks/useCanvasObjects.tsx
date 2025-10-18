@@ -10,6 +10,7 @@ export type CanvasObject = {
   width: number;
   height: number;
   color: string;
+  order?: number;
   strokeColor?: string;
   strokeWidth?: number;
   strokeStyle?: 'solid' | 'dashed' | 'dotted';
@@ -40,6 +41,8 @@ export type CanvasObjectsState = {
   beginGroupDrag: (anchorId: string) => void;
   updateGroupDrag: (anchorId: string, dx: number, dy: number) => void;
   commitGroupDrag: (anchorId: string, dx: number, dy: number) => void;
+  bringToFront: () => void;
+  sendToBack: () => void;
   undo: () => void;
   redo: () => void;
 };
@@ -82,6 +85,7 @@ export function newShape(type: ShapeType, idx: number): CanvasObject {
       width: 160,
       height: 40,
       color: '#111827',
+      order: Date.now(),
       strokeColor: undefined,
       strokeWidth: undefined,
       strokeStyle: 'solid',
@@ -97,6 +101,7 @@ export function newShape(type: ShapeType, idx: number): CanvasObject {
     width: type === 'circle' ? 120 : base.width,
     height: type === 'circle' ? 120 : base.height,
     color: randomColor(),
+    order: Date.now(),
     strokeColor: '#111827',
     strokeWidth: 2,
     strokeStyle: 'solid',

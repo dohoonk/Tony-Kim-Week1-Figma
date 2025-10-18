@@ -6,6 +6,12 @@ import { useFirestoreSync } from '../hooks/useFirestoreSync';
 import { useHistory } from '../hooks/useHistory';
 import { usePresence } from '../hooks/usePresence';
 
+type LocalCanvasObject = CanvasObject & {
+  flashUntil?: number;
+  flashColor?: string;
+  lastEditorName?: string;
+};
+
 export default function CanvasObjectsProvider({ children }: { children: ReactNode }) {
   const [objects, setObjects] = useState<CanvasObject[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -36,17 +42,17 @@ export default function CanvasObjectsProvider({ children }: { children: ReactNod
       for (const o of remote) idIndexRef.current.add(o.id);
       setObjects((prev) => {
         const now = Date.now();
-        const next = new Map<string, typeof prev[number]>();
+        const next = new Map<string, LocalCanvasObject>();
         for (const r of remote) {
           const suppressUntil = suppressRemoteRef.current.get(r.id) ?? 0;
-          let item: any = r;
+          let item: LocalCanvasObject = r as LocalCanvasObject;
           if (suppressUntil > now) {
-            const local = prev.find((p) => p.id === r.id);
+            const local = prev.find((p) => p.id === r.id) as LocalCanvasObject | undefined;
             item = local ?? r;
           }
-          const before = prev.find((p) => p.id === r.id) as any;
-          const lastEditor = (item as any).lastEditedBy as string | undefined;
-          const lastEditedAtMs = (item as any).lastEditedAtMs as number | undefined;
+          const before = prev.find((p) => p.id === r.id) as LocalCanvasObject | undefined;
+          const lastEditor = item.lastEditedBy as string | undefined;
+          const lastEditedAtMs = item.lastEditedAtMs as number | undefined;
           let flashUntil: number | undefined = before?.flashUntil;
           let flashColor: string | undefined = before?.flashColor;
           let lastEditorName: string | undefined = before?.lastEditorName;
@@ -62,18 +68,18 @@ export default function CanvasObjectsProvider({ children }: { children: ReactNod
               flashUntil = now + 1500;
             }
           }
-          next.set(r.id, { ...(item as any), flashUntil, flashColor, lastEditorName } as any);
+          next.set(r.id, { ...(item as LocalCanvasObject), flashUntil, flashColor, lastEditorName });
         }
         // If any local IDs not present remotely (e.g., optimistic), keep them
-        for (const p of prev) if (!next.has(p.id)) next.set(p.id, p);
-        return Array.from(next.values());
+        for (const p of prev) if (!next.has(p.id)) next.set(p.id, p as LocalCanvasObject);
+        return Array.from(next.values()).sort((a, b) => ((a.order ?? 0) - (b.order ?? 0)));
       });
       if (selectedId && !remote.find((o) => o.id === selectedId)) {
         setSelectedId(null);
       }
       setSelectedIds((prev) => prev.filter((id) => remote.some((o) => o.id === id)));
     });
-  }, [subscribe, selectedId]);
+  }, [subscribe, selectedId, others, self]);
 
   const addShape = useCallback((type: ShapeType, initial?: Partial<CanvasObject>) => {
     const obj = { ...newShape(type, addCountRef.current++), ...(initial ?? {}) } as CanvasObject;
@@ -88,7 +94,7 @@ export default function CanvasObjectsProvider({ children }: { children: ReactNod
     setSelectedIds([obj.id]);
     // Persist immediately so a quick refresh does not drop the new object
     void writeObject(obj, { immediate: true });
-  }, [writeObject]);
+  }, [writeObject, history]);
 
   const updateShape = useCallback((id: string, patch: Partial<CanvasObject>, opts?: { immediate?: boolean }) => {
     setObjects((prev) => {
@@ -107,7 +113,7 @@ export default function CanvasObjectsProvider({ children }: { children: ReactNod
       suppressRemoteFor([id]);
       void writeObject({ ...next, ...patch }, opts);
     }
-  }, [objects, writeObject]);
+  }, [objects, writeObject, history, suppressRemoteFor]);
 
   const deleteSelected = useCallback(() => {
     const ids = selectedIds.length > 0 ? [...selectedIds] : (selectedId ? [selectedId] : []);
@@ -131,7 +137,7 @@ export default function CanvasObjectsProvider({ children }: { children: ReactNod
     setSelectedId(null);
     setSelectedIds([]);
     for (const id of ids) void deleteObject(id);
-  }, [selectedId, selectedIds, deleteObject]);
+  }, [selectedId, selectedIds, deleteObject, history]);
 
   const copySelected = useCallback(() => {
     const ids = selectedIds.length > 0 ? [...selectedIds] : (selectedId ? [selectedId] : []);
@@ -155,7 +161,7 @@ export default function CanvasObjectsProvider({ children }: { children: ReactNod
     setSelectedId(dups[0].id);
     setSelectedIds(dups.map((d) => d.id));
     for (const dup of dups) void writeObject(dup, { immediate: true });
-  }, [objects, selectedId, selectedIds, writeObject]);
+  }, [objects, selectedId, selectedIds, writeObject, history]);
 
   const select = useCallback((id: string | null, additive?: boolean) => {
     if (id == null) {
@@ -177,6 +183,30 @@ export default function CanvasObjectsProvider({ children }: { children: ReactNod
 
   const value = useMemo(
     () => ({ objects, selectedId, selectedIds, addShape, updateShape, deleteSelected, copySelected, select, selectMany,
+      bringToFront: () => {
+        if (selectedIds.length === 0 && !selectedId) return;
+        const ids = selectedIds.length ? selectedIds : (selectedId ? [selectedId] : []);
+        const maxOrder = Math.max(0, ...objects.map((o) => o.order ?? 0));
+        let bump = maxOrder + 1;
+        for (const id of ids) {
+          const obj = objects.find((o) => o.id === id);
+          if (obj) {
+            void writeObject({ ...obj, order: bump++ }, { immediate: true });
+          }
+        }
+      },
+      sendToBack: () => {
+        if (selectedIds.length === 0 && !selectedId) return;
+        const ids = selectedIds.length ? selectedIds : (selectedId ? [selectedId] : []);
+        const minOrder = Math.min(0, ...objects.map((o) => o.order ?? 0));
+        let down = minOrder - ids.length;
+        for (const id of ids) {
+          const obj = objects.find((o) => o.id === id);
+          if (obj) {
+            void writeObject({ ...obj, order: down++ }, { immediate: true });
+          }
+        }
+      },
       beginGroupDrag: (anchorId: string) => {
         if (!selectedIds.includes(anchorId) || selectedIds.length <= 1) {
           dragOriginRef.current = null;
@@ -218,7 +248,7 @@ export default function CanvasObjectsProvider({ children }: { children: ReactNod
       undo: () => history.undo(objects, setObjects),
       redo: () => history.redo(objects, setObjects),
     }),
-    [objects, selectedId, selectedIds, addShape, updateShape, deleteSelected, copySelected, select]
+    [objects, selectedId, selectedIds, addShape, updateShape, deleteSelected, copySelected, select, selectMany, writeObject, history, suppressRemoteFor]
   );
 
   // Flush any pending batched writes when the tab goes hidden or unloads

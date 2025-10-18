@@ -39,7 +39,7 @@ function InnerCanvas() {
   const [marqueeStart, setMarqueeStart] = useState<{ x: number; y: number } | null>(null);
   const [marqueeRect, setMarqueeRect] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
 
-  const { objects, selectedId, selectedIds, updateShape, deleteSelected, copySelected, undo, redo, selectMany } = useCanvasObjects();
+  const { objects, selectedId, selectedIds, updateShape, deleteSelected, copySelected, undo, redo, selectMany, bringToFront, sendToBack } = useCanvasObjects();
   const { updateCursor } = useCursor(150);
   const { user } = useUser();
 
@@ -394,7 +394,13 @@ function InnerCanvas() {
                 style={{ width: 80, border: '1px solid #cbd5e1', height: 28, borderRadius: 6, padding: '0 6px' }}
               />
             </div>
-            {/* Row 4: opacity */}
+            {/* Row 4: layers + opacity */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <label style={{ fontSize: 12, color: '#475569', minWidth: 60 }}>Layers</label>
+              <button className="toolbar-btn" onClick={() => bringToFront()}>Front</button>
+              <button className="toolbar-btn" onClick={() => sendToBack()}>Back</button>
+            </div>
+            
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <label style={{ fontSize: 12, color: '#475569', minWidth: 60 }}>Opacity</label>
               <input style={{ flex: 1, width: '100%' }} type="range" min={0} max={100} value={Math.round((anchor.opacity ?? 1) * 100)} onChange={(e) => { const v = Math.min(1, Math.max(0, Number(e.target.value) / 100)); for (const o of selected) updateShape(o.id, { opacity: v }, { immediate: true }); }} />
