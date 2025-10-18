@@ -94,6 +94,81 @@ Output in `dist/`.
 { "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }] }
 ```
 
+## Setup Guide (Detailed)
+
+### 1) Prerequisites
+- Node (nvm): `nvm install 22.20.0 && nvm use 22.20.0`
+- Firebase CLI: `npm i -g firebase-tools` and `firebase login`
+- A Firebase project (use the existing `tony-figma` or create one)
+
+### 2) Local Development
+```bash
+cd collab-canvas
+npm install
+cp .env.local.example .env.local   # if you maintain a template, otherwise create .env.local
+```
+Set `.env.local` with your Firebase web config:
+```
+VITE_FIREBASE_API_KEY=
+VITE_FIREBASE_AUTH_DOMAIN=
+VITE_FIREBASE_PROJECT_ID=
+VITE_FIREBASE_STORAGE_BUCKET=
+VITE_FIREBASE_MESSAGING_SENDER_ID=
+VITE_FIREBASE_APP_ID=
+
+# If testing the AI proxy locally via emulator
+# VITE_AI_PROXY_URL=http://127.0.0.1:5001/tony-figma/us-central1/aiProxy
+```
+Run the app:
+```bash
+npm run dev
+```
+
+### 3) AI Proxy (Firebase Functions)
+The frontend calls a Firebase HTTPS Function as a proxy to OpenAI.
+
+- Local emulator (optional):
+```bash
+cd functions
+npm install
+npm run build
+# put your key in functions/.env.local
+echo "OPENAI_API_KEY=sk-..." > .env.local
+cd ..
+firebase emulators:start --project tony-figma
+```
+
+- Production deploy:
+```bash
+# one-time: set the secret in Functions
+firebase functions:secrets:set OPENAI_API_KEY --project tony-figma
+
+# deploy the function (CLI builds for you)
+firebase deploy --only functions --project tony-figma
+```
+After deploy, note the function URL (example):
+```
+https://us-central1-tony-figma.cloudfunctions.net/aiProxy
+```
+Add to environments:
+- Local: set `VITE_AI_PROXY_URL` in `.env.local`
+- Vercel: add `VITE_AI_PROXY_URL` in Project Settings → Environment Variables
+
+### 4) Vercel Hosting
+- Root Directory: `collab-canvas`
+- Build Command: `npm run build`
+- Output: `dist`
+- Environment Variables: all `VITE_FIREBASE_*` and `VITE_AI_PROXY_URL`
+- SPA routing: keep `vercel.json` rewrite to `index.html` so refresh on `/canvas` doesn’t 404
+
+### 5) Common Troubleshooting
+- Blank screen or 404 on refresh → check `vercel.json` rewrite and root directory.
+- AI calls failing:
+  - Ensure `VITE_AI_PROXY_URL` points to the Cloud Function URL, not the console link.
+  - Confirm Functions secret `OPENAI_API_KEY` is set and the function was redeployed after setting.
+  - Inspect DevTools Network for the `aiProxy` request status.
+- Firestore quota/high write rates → cursor throttling is 150ms and object writes batch at ~40–100ms; verify you’re not on a restricted quota or switch to emulator.
+
 ## Testing (lightweight for MVP)
 - Vitest + RTL setup included; canvas E2E/manual preferred due to DOM canvas limitations.
 
