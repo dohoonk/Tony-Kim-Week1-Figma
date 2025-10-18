@@ -31,7 +31,7 @@ function InnerCanvas() {
   const [selfPos, setSelfPos] = useState<{ x: number; y: number } | null>(null);
   const [editingTextId, setEditingTextId] = useState<string | null>(null);
 
-  const { objects, updateShape, deleteSelected, copySelected } = useCanvasObjects();
+  const { objects, selectedId, updateShape, deleteSelected, copySelected } = useCanvasObjects();
   const { updateCursor } = useCursor(33);
   const { user } = useUser();
 
@@ -201,6 +201,26 @@ function InnerCanvas() {
           selfCursor={selfPos && user ? { uid: user.uid, x: selfPos.x, y: selfPos.y, name: user.displayName ?? 'You', color: '#5b8def' } : undefined}
         />
       </Stage>
+      {(() => {
+        const sel = objects.find((o) => o.id === selectedId);
+        if (!sel) return null;
+        const left = position.x + (sel.x + sel.width + 8) * scale;
+        const top = position.y + sel.y * scale;
+        return (
+          <div
+            style={{ position: 'absolute', left, top, zIndex: 21, background: '#fff', border: '1px solid #e2e8f0', borderRadius: 6, padding: 6, display: 'flex', gap: 8, alignItems: 'center' }}
+            onPointerDown={(e) => e.stopPropagation()}
+          >
+            <label style={{ fontSize: 12, color: '#475569' }}>Color</label>
+            <input
+              type="color"
+              value={sel.color}
+              onChange={(e) => updateShape(sel.id, { color: e.target.value }, { immediate: true })}
+              style={{ width: 28, height: 28, padding: 0, border: 'none', background: 'transparent' }}
+            />
+          </div>
+        );
+      })()}
       {(() => {
         const sel = objects.find((o) => o.id === editingTextId);
         if (!sel || sel.type !== 'text') return null;
