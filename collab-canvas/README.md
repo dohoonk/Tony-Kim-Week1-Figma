@@ -15,7 +15,7 @@ A real-time collaborative design canvas built with React, Konva, and Firebase. M
 - Sync model: full-document writes, debounced (~100ms) during drag/resize; conflict strategy is last-write-wins via `updatedAt: serverTimestamp()`.
 
 ### Firestore Schema (current)
-- `canvasObjects/{id}`: `{ id, type, x, y, width, height, color, opacity?, rotation, text?, fontSize?, textKind?, fontFamily?, isBold?, updatedAt, lastEditedBy?, lastEditedAt? }`
+- `canvasObjects/{id}`: `{ id, type, x, y, width, height, color, opacity?, rotation, text?, fontSize?, textKind?, fontFamily?, isBold?, order?, updatedAt, lastEditedBy?, lastEditedAt? }`
 - `cursors/{uid}`: `{ x, y, name, color, updatedAt }` (one doc per user)
 - `presence/{uid}`: `{ name, color, updatedAt, expiresAt }` (one doc per user)
 
@@ -44,7 +44,7 @@ A real-time collaborative design canvas built with React, Konva, and Firebase. M
   - Group drag: dragging one item in a multi-selection moves the whole group
   - Resize and Rotate (Transformer handles; rotation persists)
   - Copy: Cmd/Ctrl+C duplicates selected shapes with an offset
-  - Inspector (left panel near selection): shows “Last edited by …”, 5-color palette + color picker, text style (font, S/M/L/XL, Bold), and an opacity slider
+- Inspector (left panel near selection): shows “Last edited by …”, 5-color palette + color picker, text style (font, S/M/L/XL, Bold), size (width × height), Layers (Bring to Front/Send to Back), and an opacity slider
 - Shapes
   - Rectangle, Circle, Triangle, Arrow, Text
 - Real-time sync (Firestore)
@@ -59,6 +59,7 @@ A real-time collaborative design canvas built with React, Konva, and Firebase. M
 - AI assistant
   - Intercom-style launcher bottom-right opens a chat panel
   - Uses Firebase HTTPS Function proxy for OpenAI tool-calling
+  - Chat history: optional Firestore persistence under `/chats/{userId}/sessions/{sessionId}/messages`
   - Supported intents: create shape/text, move/resize/rotate/set color, center/align/distribute, grid/row layout, generate login form
 - Export & components
   - Export canvas to PNG or SVG
