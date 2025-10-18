@@ -16,6 +16,8 @@ export function useFirestoreSync(): FirestoreSync {
   const pendingMapRef = useRef<Map<string, CanvasObject>>(new Map());
   const flushTimeoutRef = useRef<number | null>(null);
   const lastEnqueueAtRef = useRef<number>(0);
+  const offlineQueueRef = useRef<Array<{ obj: CanvasObject; enqueuedAt: number }>>([]);
+  const flushTickerRef = useRef<number | null>(null);
 
   const subscribe = useCallback((onChange: (objects: CanvasObject[]) => void) => {
     if (!user) {
@@ -77,14 +79,24 @@ export function useFirestoreSync(): FirestoreSync {
       return base;
     };
     const now = Date.now();
+    const isOnline = typeof navigator === 'undefined' ? true : navigator.onLine;
+    const enqueueOffline = () => {
+      // Cap queue to 1 minute from enqueue time
+      offlineQueueRef.current = offlineQueueRef.current.filter((item) => now - item.enqueuedAt < 60_000);
+      offlineQueueRef.current.push({ obj, enqueuedAt: now });
+    };
     if (opts?.immediate) {
       const ref = doc(db, 'canvasObjects', obj.id);
       try {
+        if (!isOnline) {
+          enqueueOffline();
+          return;
+        }
         await setDoc(ref, buildPayload(obj), { merge: false });
         lastEnqueueAtRef.current = now;
       } catch (error) {
-        console.error('[Firestore] setDoc (immediate) failed for', ref.path, error);
-        throw error;
+        // Network/offline or transient: queue for later (max 1 minute)
+        enqueueOffline();
       }
       return;
     }
@@ -115,11 +127,15 @@ export function useFirestoreSync(): FirestoreSync {
     // Idle edit → write immediately (no batching, avoids >30ms extra delay)
     const ref = doc(db, 'canvasObjects', obj.id);
     try {
+      if (!isOnline) {
+        enqueueOffline();
+        return;
+      }
       await setDoc(ref, buildPayload(obj), { merge: false });
       lastEnqueueAtRef.current = now;
     } catch (error) {
-      console.error('[Firestore] setDoc failed for', ref.path, error);
-      throw error;
+      // Queue for later instead of throwing to keep UI responsive
+      offlineQueueRef.current.push({ obj, enqueuedAt: now });
     }
   }, [user]);
 
@@ -134,6 +150,38 @@ export function useFirestoreSync(): FirestoreSync {
   }, []);
 
   const flushPending = useCallback(async () => {
+    // First flush offline queue if we're online
+    const isOnline = typeof navigator === 'undefined' ? true : navigator.onLine;
+    if (isOnline && offlineQueueRef.current.length > 0) {
+      const now = Date.now();
+      const batch = writeBatch(db);
+      const items = offlineQueueRef.current.filter((item) => now - item.enqueuedAt < 60_000);
+      offlineQueueRef.current = [];
+      for (const { obj } of items) {
+        const ref = doc(db, 'canvasObjects', obj.id);
+        const payload = {
+          ...( (() => {
+            const { updatedAtMs, lastEditedAtMs, ...rest } = obj as Record<string, unknown>;
+            const base: Record<string, unknown> = { ...rest };
+            for (const k of Object.keys(base)) if (base[k] === undefined) delete base[k];
+            return base;
+          })() ),
+          updatedAt: serverTimestamp(),
+          lastEditedBy: user?.uid,
+          lastEditedAt: serverTimestamp(),
+        };
+        batch.set(ref, payload);
+      }
+      try {
+        await batch.commit();
+      } catch (e) {
+        // On failure, requeue with current time (give them another minute)
+        const requeueAt = Date.now();
+        for (const { obj } of offlineQueueRef.current) {
+          offlineQueueRef.current.push({ obj, enqueuedAt: requeueAt });
+        }
+      }
+    }
     if (pendingMapRef.current.size === 0) return;
     if (flushTimeoutRef.current != null) {
       window.clearTimeout(flushTimeoutRef.current);
@@ -164,6 +212,15 @@ export function useFirestoreSync(): FirestoreSync {
       console.error('[Firestore] flushPending commit failed:', error);
     }
   }, [user]);
+
+  // Background ticker to attempt flushes periodically when online
+  if (flushTickerRef.current == null && typeof window !== 'undefined') {
+    flushTickerRef.current = window.setInterval(() => {
+      const online = typeof navigator === 'undefined' ? true : navigator.onLine;
+      if (online) void flushPending();
+    }, 2000);
+    window.addEventListener('online', () => { void flushPending(); });
+  }
 
   return { subscribe, writeObject, deleteObject, flushPending };
 }
