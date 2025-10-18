@@ -40,6 +40,7 @@ export function useFirestoreSync(): FirestoreSync {
             width: (data.width as number) ?? 0,
             height: (data.height as number) ?? 0,
             color: (data.color as string) ?? '#cccccc',
+            opacity: (data.opacity as number) ?? 1,
             rotation: (data.rotation as number) ?? 0,
             updatedAtMs: (data.updatedAt as { toMillis?: () => number } | undefined)?.toMillis?.(),
             lastEditedBy: (data.lastEditedBy as string) ?? undefined,
@@ -62,12 +63,7 @@ export function useFirestoreSync(): FirestoreSync {
   const writeObject = useCallback(async (obj: CanvasObject, opts?: { immediate?: boolean }) => {
     // Strip undefined and client-only fields before writing
     const buildPayload = (o: CanvasObject) => {
-      const {
-        updatedAtMs,
-        lastEditedAtMs,
-        // any other client-only fields should not be sent
-        ...rest
-      } = o as Record<string, unknown>;
+      const { /* updatedAtMs, lastEditedAtMs, */ ...rest } = o as Record<string, unknown>;
       const base: Record<string, unknown> = { ...rest };
       // Remove undefined keys (Firestore rejects undefined values)
       for (const k of Object.keys(base)) {
@@ -94,7 +90,7 @@ export function useFirestoreSync(): FirestoreSync {
         }
         await setDoc(ref, buildPayload(obj), { merge: false });
         lastEnqueueAtRef.current = now;
-      } catch (error) {
+      } catch {
         // Network/offline or transient: queue for later (max 1 minute)
         enqueueOffline();
       }
@@ -133,7 +129,7 @@ export function useFirestoreSync(): FirestoreSync {
       }
       await setDoc(ref, buildPayload(obj), { merge: false });
       lastEnqueueAtRef.current = now;
-    } catch (error) {
+    } catch {
       // Queue for later instead of throwing to keep UI responsive
       offlineQueueRef.current.push({ obj, enqueuedAt: now });
     }
@@ -159,9 +155,9 @@ export function useFirestoreSync(): FirestoreSync {
       offlineQueueRef.current = [];
       for (const { obj } of items) {
         const ref = doc(db, 'canvasObjects', obj.id);
-        const payload = {
+          const payload = {
           ...( (() => {
-            const { updatedAtMs, lastEditedAtMs, ...rest } = obj as Record<string, unknown>;
+            const { /* updatedAtMs, lastEditedAtMs, */ ...rest } = obj as Record<string, unknown>;
             const base: Record<string, unknown> = { ...rest };
             for (const k of Object.keys(base)) if (base[k] === undefined) delete base[k];
             return base;
@@ -174,7 +170,7 @@ export function useFirestoreSync(): FirestoreSync {
       }
       try {
         await batch.commit();
-      } catch (e) {
+      } catch {
         // On failure, requeue with current time (give them another minute)
         const requeueAt = Date.now();
         for (const { obj } of offlineQueueRef.current) {
@@ -192,7 +188,7 @@ export function useFirestoreSync(): FirestoreSync {
     pendingMapRef.current.clear();
     // Reuse same sanitizer as writeObject
     const buildPayload = (o: CanvasObject) => {
-      const { updatedAtMs, lastEditedAtMs, ...rest } = o as Record<string, unknown>;
+      const { /* updatedAtMs, lastEditedAtMs, */ ...rest } = o as Record<string, unknown>;
       const base: Record<string, unknown> = { ...rest };
       for (const k of Object.keys(base)) {
         if (base[k] === undefined) delete base[k];
