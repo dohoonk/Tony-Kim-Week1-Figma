@@ -76,20 +76,21 @@ export function useAIAgent() {
         }
         break;
       case 'distributeObjects':
-        // Simple stub: evenly spread current objects along axis within 800x600
         if (objects.length >= 2) {
           if (cmd.payload.axis === 'horizontal') {
             const gap = Math.floor((containerWidth - objects.reduce((s, o) => s + o.width, 0)) / (objects.length + 1));
-            let cursor = gap;
+            let cursor = Math.max(0, gap);
             objects.forEach((o) => {
-              updateShape(o.id, { x: cursor }, { immediate: true });
+              const clamped = clampWithin(containerWidth, containerHeight, o.width, o.height, cursor, o.y);
+              updateShape(o.id, { x: clamped.x }, { immediate: true });
               cursor += o.width + gap;
             });
           } else {
             const gap = Math.floor((containerHeight - objects.reduce((s, o) => s + o.height, 0)) / (objects.length + 1));
-            let cursor = gap;
+            let cursor = Math.max(0, gap);
             objects.forEach((o) => {
-              updateShape(o.id, { y: cursor }, { immediate: true });
+              const clamped = clampWithin(containerWidth, containerHeight, o.width, o.height, o.x, cursor);
+              updateShape(o.id, { y: clamped.y }, { immediate: true });
               cursor += o.height + gap;
             });
           }
@@ -106,7 +107,8 @@ export function useAIAgent() {
         let x = padding, y = padding;
         let col = 0;
         objects.forEach((o) => {
-          updateShape(o.id, { x, y }, { immediate: true });
+          const clamped = clampWithin(containerWidth, containerHeight, o.width, o.height, x, y);
+          updateShape(o.id, { x: clamped.x, y: clamped.y }, { immediate: true });
           col += 1;
           if (col >= cols) { col = 0; x = padding; y += itemH + gap; }
           else { x += itemW + gap; }
@@ -119,9 +121,31 @@ export function useAIAgent() {
         let x = padding;
         const y = padding;
         objects.forEach((o) => {
-          updateShape(o.id, { x, y }, { immediate: true });
+          const clamped = clampWithin(containerWidth, containerHeight, o.width, o.height, x, y);
+          updateShape(o.id, { x: clamped.x, y: clamped.y }, { immediate: true });
           x += o.width + gap;
         });
+        break;
+      }
+      case 'generateLoginForm': {
+        const width = Math.min(containerWidth - 32, Math.max(240, cmd.payload.width ?? 360));
+        const gap = cmd.payload.gap ?? 12;
+        const padding = cmd.payload.padding ?? 24;
+        const color = cmd.payload.color ?? '#2563eb';
+        const title = cmd.payload.title ?? 'Welcome back';
+        const buttonText = cmd.payload.buttonText ?? 'Sign in';
+        const formX = padding;
+        const totalHeight = 32 + gap + 48 + gap + 48 + gap + 40 + padding; // rough estimate
+        const formY = Math.max(padding, Math.floor((containerHeight - totalHeight) / 2));
+        // title
+        addShape('text', { text: title, x: formX, y: formY, fontSize: 24, color: '#111827' } as any);
+        // email input (rectangle)
+        addShape('rectangle', { x: formX, y: formY + 32 + gap, width, height: 48, color: '#e5e7eb' });
+        // password input
+        addShape('rectangle', { x: formX, y: formY + 32 + gap + 48 + gap, width, height: 48, color: '#e5e7eb' });
+        // button
+        addShape('rectangle', { x: formX, y: formY + 32 + gap + 48 + gap + 48 + gap, width, height: 40, color });
+        addShape('text', { text: buttonText, x: formX + 12, y: formY + 32 + gap + 48 + gap + 48 + gap + 8, fontSize: 18, color: '#ffffff' } as any);
         break;
       }
       case 'setTextKindSelected':
