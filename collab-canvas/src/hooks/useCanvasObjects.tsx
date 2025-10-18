@@ -29,6 +29,8 @@ export type CanvasObjectsState = {
   deleteSelected: () => void;
   copySelected: () => void;
   select: (id: string | null) => void;
+  undo: () => void;
+  redo: () => void;
 };
 
 export const CanvasObjectsContext = createContext<CanvasObjectsState | null>(null);

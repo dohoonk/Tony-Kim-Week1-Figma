@@ -35,7 +35,7 @@ function InnerCanvas() {
   const [selfPos, setSelfPos] = useState<{ x: number; y: number } | null>(null);
   const [editingTextId, setEditingTextId] = useState<string | null>(null);
 
-  const { objects, selectedId, updateShape, deleteSelected, copySelected } = useCanvasObjects();
+  const { objects, selectedId, updateShape, deleteSelected, copySelected, undo, redo } = useCanvasObjects();
   const { updateCursor } = useCursor(150);
   const { user } = useUser();
 
@@ -77,6 +77,16 @@ function InnerCanvas() {
         e.preventDefault();
         copySelected();
       }
+      const isUndo = (e.metaKey || e.ctrlKey) && !e.shiftKey && e.key.toLowerCase() === 'z';
+      if (isUndo) {
+        e.preventDefault();
+        undo();
+      }
+      const isRedo = (e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === 'z';
+      if (isRedo) {
+        e.preventDefault();
+        redo();
+      }
     };
     const onKeyUp = (e: KeyboardEvent) => {
       if (isEditable(e.target)) return;
@@ -92,7 +102,7 @@ function InnerCanvas() {
       window.removeEventListener('keydown', onKeyDown);
       window.removeEventListener('keyup', onKeyUp);
     };
-  }, [deleteSelected, copySelected]);
+  }, [deleteSelected, copySelected, undo, redo]);
 
   const handleContextMenu = useCallback((e: { evt?: { preventDefault?: () => void } }) => {
     e.evt?.preventDefault?.();

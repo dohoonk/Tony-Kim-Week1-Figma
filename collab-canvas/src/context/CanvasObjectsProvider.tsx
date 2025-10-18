@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { CanvasObjectsContext, newShape } from '../hooks/useCanvasObjects';
 import type { CanvasObject, ShapeType } from '../hooks/useCanvasObjects';
 import { useFirestoreSync } from '../hooks/useFirestoreSync';
+import { useHistory } from '../hooks/useHistory';
 
 export default function CanvasObjectsProvider({ children }: { children: ReactNode }) {
   const [objects, setObjects] = useState<CanvasObject[]>([]);
@@ -10,6 +11,7 @@ export default function CanvasObjectsProvider({ children }: { children: ReactNod
   const addCountRef = useRef(0);
 
   const { subscribe, writeObject, deleteObject, flushPending } = useFirestoreSync();
+  const history = useHistory();
 
   // Delegate batching entirely to useFirestoreSync.writeObject
 
@@ -36,14 +38,30 @@ export default function CanvasObjectsProvider({ children }: { children: ReactNod
 
   const addShape = useCallback((type: ShapeType, initial?: Partial<CanvasObject>) => {
     const obj = { ...newShape(type, addCountRef.current++), ...(initial ?? {}) } as CanvasObject;
-    setObjects((prev) => [...prev, obj]);
+    setObjects((prev) => {
+      history.push({
+        apply: (list) => [...list, obj],
+        revert: (list) => list.filter((o) => o.id !== obj.id),
+      });
+      return [...prev, obj];
+    });
     setSelectedId(obj.id);
     // Persist immediately so a quick refresh does not drop the new object
     void writeObject(obj, { immediate: true });
   }, [writeObject]);
 
   const updateShape = useCallback((id: string, patch: Partial<CanvasObject>, opts?: { immediate?: boolean }) => {
-    setObjects((prev) => prev.map((o) => (o.id === id ? { ...o, ...patch } : o)));
+    setObjects((prev) => {
+      const before = prev.find((o) => o.id === id);
+      if (before) {
+        const after = { ...before, ...patch } as CanvasObject;
+        history.push({
+          apply: (list) => list.map((o) => (o.id === id ? after : o)),
+          revert: (list) => list.map((o) => (o.id === id ? before : o)),
+        });
+      }
+      return prev.map((o) => (o.id === id ? { ...o, ...patch } : o));
+    });
     const next = objects.find((o) => o.id === id);
     if (next) void writeObject({ ...next, ...patch }, opts);
   }, [objects, writeObject]);
@@ -51,7 +69,14 @@ export default function CanvasObjectsProvider({ children }: { children: ReactNod
   const deleteSelected = useCallback(() => {
     if (!selectedId) return;
     const id = selectedId;
-    setObjects((prev) => prev.filter((o) => o.id !== id));
+    setObjects((prev) => {
+      const deleted = prev.find((o) => o.id === id);
+      history.push({
+        apply: (list) => list.filter((o) => o.id !== id),
+        revert: (list) => (deleted ? [...list, deleted] : list),
+      });
+      return prev.filter((o) => o.id !== id);
+    });
     setSelectedId(null);
     void deleteObject(id);
   }, [selectedId, deleteObject]);
@@ -66,7 +91,13 @@ export default function CanvasObjectsProvider({ children }: { children: ReactNod
       x: source.x + 24,
       y: source.y + 24,
     };
-    setObjects((prev) => [...prev, dup]);
+    setObjects((prev) => {
+      history.push({
+        apply: (list) => [...list, dup],
+        revert: (list) => list.filter((o) => o.id !== dup.id),
+      });
+      return [...prev, dup];
+    });
     setSelectedId(dup.id);
     // Persist immediately to avoid losing the duplicate on refresh
     void writeObject(dup, { immediate: true });
@@ -75,7 +106,10 @@ export default function CanvasObjectsProvider({ children }: { children: ReactNod
   const select = useCallback((id: string | null) => setSelectedId(id), []);
 
   const value = useMemo(
-    () => ({ objects, selectedId, addShape, updateShape, deleteSelected, copySelected, select }),
+    () => ({ objects, selectedId, addShape, updateShape, deleteSelected, copySelected, select,
+      undo: () => history.undo(objects, setObjects),
+      redo: () => history.redo(objects, setObjects),
+    }),
     [objects, selectedId, addShape, updateShape, deleteSelected, copySelected, select]
   );
 

@@ -1,9 +1,11 @@
 import { useCanvasObjects } from '../../hooks/useCanvasObjects';
 
 export default function CanvasToolbar() {
-  const { addShape } = useCanvasObjects();
+  const { addShape, undo, redo } = useCanvasObjects();
   return (
     <div className="canvas-toolbar-box">
+      <button onClick={undo}>Undo</button>
+      <button onClick={redo}>Redo</button>
       <button onClick={() => addShape('rectangle')}>Add Rectangle</button>
       <button onClick={() => addShape('circle')}>Add Circle</button>
       <button onClick={() => addShape('triangle')}>Add Triangle</button>
