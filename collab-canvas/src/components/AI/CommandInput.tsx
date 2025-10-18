@@ -92,6 +92,72 @@ export default function CommandInput() {
         },
       },
     },
+    {
+      type: 'function',
+      function: {
+        name: 'arrangeCenter',
+        description: 'Center the currently selected object on the canvas',
+        parameters: { type: 'object', properties: {} },
+      },
+    },
+    {
+      type: 'function',
+      function: {
+        name: 'alignSelected',
+        description: 'Align selected object to left/right/top/bottom of canvas',
+        parameters: {
+          type: 'object',
+          properties: { position: { type: 'string', enum: ['left', 'right', 'top', 'bottom'] } },
+          required: ['position']
+        }
+      }
+    },
+    {
+      type: 'function',
+      function: {
+        name: 'distributeObjects',
+        description: 'Distribute objects horizontally or vertically within canvas',
+        parameters: {
+          type: 'object',
+          properties: { axis: { type: 'string', enum: ['horizontal', 'vertical'] } },
+          required: ['axis']
+        }
+      }
+    },
+    {
+      type: 'function',
+      function: {
+        name: 'setTextKindSelected',
+        description: 'Set text kind (heading/subtitle/body) for selected text',
+        parameters: {
+          type: 'object',
+          properties: { kind: { type: 'string', enum: ['heading', 'subtitle', 'body'] } },
+          required: ['kind']
+        }
+      }
+    },
+    {
+      type: 'function',
+      function: {
+        name: 'gridLayout',
+        description: 'Arrange existing objects in a grid; optional gap and padding',
+        parameters: {
+          type: 'object',
+          properties: { gap: { type: 'number' }, padding: { type: 'number' } }
+        }
+      }
+    },
+    {
+      type: 'function',
+      function: {
+        name: 'rowLayout',
+        description: 'Arrange existing objects in a single row; optional gap and padding',
+        parameters: {
+          type: 'object',
+          properties: { gap: { type: 'number' }, padding: { type: 'number' } }
+        }
+      }
+    },
   ];
 
   const onSubmit = async (e: React.FormEvent) => {
@@ -141,6 +207,30 @@ export default function CommandInput() {
                 break;
               case 'setColorSelected':
                 execute({ type: 'setColorSelected', payload: { color: args.color } });
+                executed = true;
+                break;
+              case 'alignSelected':
+                execute({ type: 'alignSelected', payload: { position: args.position } });
+                executed = true;
+                break;
+              case 'distributeObjects':
+                execute({ type: 'distributeObjects', payload: { axis: args.axis } });
+                executed = true;
+                break;
+              case 'setTextKindSelected':
+                execute({ type: 'setTextKindSelected', payload: { kind: args.kind } });
+                executed = true;
+                break;
+              case 'gridLayout':
+                execute({ type: 'gridLayout', payload: { gap: args.gap, padding: args.padding } });
+                executed = true;
+                break;
+              case 'rowLayout':
+                execute({ type: 'rowLayout', payload: { gap: args.gap, padding: args.padding } });
+                executed = true;
+                break;
+              case 'arrangeCenter':
+                execute({ type: 'arrangeCenter' });
                 executed = true;
                 break;
               default:

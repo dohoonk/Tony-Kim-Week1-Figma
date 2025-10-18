@@ -4,7 +4,13 @@ export type AICommandType =
   | 'moveSelected'
   | 'resizeSelected'
   | 'rotateSelected'
-  | 'setColorSelected';
+  | 'setColorSelected'
+  | 'arrangeCenter'
+  | 'alignSelected'
+  | 'distributeObjects'
+  | 'setTextKindSelected'
+  | 'gridLayout'
+  | 'rowLayout';
 
 export type CreateShapePayload = {
   type: 'rectangle' | 'circle' | 'triangle';
@@ -25,6 +31,11 @@ export type MoveSelectedPayload = { x: number; y: number };
 export type ResizeSelectedPayload = { width: number; height: number };
 export type RotateSelectedPayload = { rotation: number };
 export type SetColorSelectedPayload = { color: string };
+export type AlignSelectedPayload = { position: 'left' | 'right' | 'top' | 'bottom' };
+export type DistributeObjectsPayload = { axis: 'horizontal' | 'vertical' };
+export type SetTextKindSelectedPayload = { kind: 'heading' | 'subtitle' | 'body' };
+export type GridLayoutPayload = { gap?: number; padding?: number };
+export type RowLayoutPayload = { gap?: number; padding?: number };
 
 export type AICommand =
   | { type: 'createShape'; payload: CreateShapePayload }
@@ -32,6 +43,12 @@ export type AICommand =
   | { type: 'moveSelected'; payload: MoveSelectedPayload }
   | { type: 'resizeSelected'; payload: ResizeSelectedPayload }
   | { type: 'rotateSelected'; payload: RotateSelectedPayload }
-  | { type: 'setColorSelected'; payload: SetColorSelectedPayload };
+  | { type: 'setColorSelected'; payload: SetColorSelectedPayload }
+  | { type: 'arrangeCenter' }
+  | { type: 'alignSelected'; payload: AlignSelectedPayload }
+  | { type: 'distributeObjects'; payload: DistributeObjectsPayload }
+  | { type: 'setTextKindSelected'; payload: SetTextKindSelectedPayload }
+  | { type: 'gridLayout'; payload: GridLayoutPayload }
+  | { type: 'rowLayout'; payload: RowLayoutPayload };
 
 

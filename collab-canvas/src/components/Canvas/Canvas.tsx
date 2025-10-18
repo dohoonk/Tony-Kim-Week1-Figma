@@ -3,12 +3,14 @@ import { Stage, Layer } from 'react-konva';
 import type Konva from 'konva';
 import '../../styles/Canvas.css';
 import CanvasObjectsProvider from '../../context/CanvasObjectsProvider';
+import { CanvasViewProvider } from '../../context/CanvasViewContext';
 import { useCanvasObjects } from '../../hooks/useCanvasObjects';
 import CanvasToolbar from './CanvasToolbar';
 import Shape from './Shape';
 import CursorLayer from './CursorLayer';
 import { useCursor } from '../../hooks/useCursor';
 import { useUser } from '../../context/UserContext';
+// (duplicate import removed)
 import PresenceBox from './PresenceBox';
 import LogoutButton from '../Auth/LogoutButton';
 import CommandInput from '../AI/CommandInput';
@@ -192,27 +194,29 @@ function InnerCanvas() {
     <div ref={containerRef} className="canvas-container" onContextMenu={(e) => e.preventDefault()}>
       <div className="canvas-logout-box"><LogoutButton /></div>
       <PresenceBox />
-      <Stage
-        ref={stageRef}
-        {...stageProps}
-        onWheel={handleWheel}
-        onContentMousedown={handlePointerDown}
-        onContentMouseup={handlePointerUp}
-        onDragMove={handleDragMove}
-        onMouseMove={handleMouseMove}
-        onContextMenu={handleContextMenu}
-        draggable={false}
-      >
-        <Layer>
-          {objects.map((o) => (
-            <Shape key={o.id} object={o} editingId={editingTextId} onEditText={(id) => setEditingTextId(id)} />
-          ))}
-        </Layer>
-        <CursorLayer
-          scale={scale}
-          selfCursor={selfPos && user ? { uid: user.uid, x: selfPos.x, y: selfPos.y, name: user.displayName ?? 'You', color: '#5b8def' } : undefined}
-        />
-      </Stage>
+      <CanvasViewProvider value={{ stageWidth: stageSize.width, stageHeight: stageSize.height, scale, positionX: position.x, positionY: position.y }}>
+        <Stage
+          ref={stageRef}
+          {...stageProps}
+          onWheel={handleWheel}
+          onContentMousedown={handlePointerDown}
+          onContentMouseup={handlePointerUp}
+          onDragMove={handleDragMove}
+          onMouseMove={handleMouseMove}
+          onContextMenu={handleContextMenu}
+          draggable={false}
+        >
+          <Layer>
+            {objects.map((o) => (
+              <Shape key={o.id} object={o} editingId={editingTextId} onEditText={(id) => setEditingTextId(id)} />
+            ))}
+          </Layer>
+          <CursorLayer
+            scale={scale}
+            selfCursor={selfPos && user ? { uid: user.uid, x: selfPos.x, y: selfPos.y, name: user.displayName ?? 'You', color: '#5b8def' } : undefined}
+          />
+        </Stage>
+      </CanvasViewProvider>
       <CommandInput />
       {(() => {
         const sel = objects.find((o) => o.id === selectedId);
@@ -302,7 +306,9 @@ export default function Canvas() {
   return (
     <CanvasObjectsProvider>
       <CanvasToolbar />
-      <InnerCanvas />
+      <CanvasViewProvider value={{ stageWidth: 0, stageHeight: 0, scale: 1, positionX: 0, positionY: 0 }}>
+        <InnerCanvas />
+      </CanvasViewProvider>
     </CanvasObjectsProvider>
   );
 }
