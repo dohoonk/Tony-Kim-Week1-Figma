@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, useCallback } from 'react';
 import { db } from '../utils/firebase';
-import { collection, onSnapshot, serverTimestamp, addDoc } from 'firebase/firestore';
+import { collection, onSnapshot, serverTimestamp, addDoc, doc, deleteDoc } from 'firebase/firestore';
 import { useUser } from '../context/UserContext';
 import type { CanvasObject } from './useCanvasObjects';
 import { useCanvasObjects } from './useCanvasObjects';
@@ -87,7 +87,13 @@ export function useComponents() {
     if (newIds.length > 0) selectMany(newIds);
   }, [items, addShape, selectMany]);
 
-  return useMemo(() => ({ items, saveSelected, insert }), [items, saveSelected, insert]);
+  const remove = useCallback(async (itemId: string) => {
+    if (!user) return;
+    const ref = doc(db, 'components', user.uid, 'items', itemId);
+    await deleteDoc(ref);
+  }, [user]);
+
+  return useMemo(() => ({ items, saveSelected, insert, remove }), [items, saveSelected, insert, remove]);
 }
 
 
