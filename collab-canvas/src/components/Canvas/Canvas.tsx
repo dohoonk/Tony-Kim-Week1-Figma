@@ -11,6 +11,7 @@ import { useCursor } from '../../hooks/useCursor';
 import { useUser } from '../../context/UserContext';
 import PresenceBox from './PresenceBox';
 import LogoutButton from '../Auth/LogoutButton';
+import CommandInput from '../AI/CommandInput';
 
 const MIN_SCALE = 0.25;
 const MAX_SCALE = 4;
@@ -48,7 +49,17 @@ function InnerCanvas() {
   }, []);
 
   useEffect(() => {
+    const isEditable = (el: EventTarget | null) => {
+      const t = el as HTMLElement | null;
+      if (!t) return false;
+      const tag = t.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return true;
+      if ((t as HTMLElement).isContentEditable) return true;
+      return false;
+    };
+
     const onKeyDown = (e: KeyboardEvent) => {
+      if (isEditable(e.target)) return; // do not hijack keys while typing in inputs
       if (e.code === 'Space') {
         e.preventDefault();
         setSpaceDown(true);
@@ -65,6 +76,7 @@ function InnerCanvas() {
       }
     };
     const onKeyUp = (e: KeyboardEvent) => {
+      if (isEditable(e.target)) return;
       if (e.code === 'Space') {
         setSpaceDown(false);
         setIsPanning(false);
@@ -201,6 +213,7 @@ function InnerCanvas() {
           selfCursor={selfPos && user ? { uid: user.uid, x: selfPos.x, y: selfPos.y, name: user.displayName ?? 'You', color: '#5b8def' } : undefined}
         />
       </Stage>
+      <CommandInput />
       {(() => {
         const sel = objects.find((o) => o.id === selectedId);
         if (!sel) return null;
