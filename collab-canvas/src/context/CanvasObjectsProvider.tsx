@@ -90,43 +90,52 @@ export default function CanvasObjectsProvider({ children }: { children: ReactNod
   }, [objects, writeObject]);
 
   const deleteSelected = useCallback(() => {
-    if (!selectedId) return;
-    const id = selectedId;
+    const ids = selectedIds.length > 0 ? [...selectedIds] : (selectedId ? [selectedId] : []);
+    if (ids.length === 0) return;
     setObjects((prev) => {
-      const deleted = prev.find((o) => o.id === id);
+      const deletedMap = new Map(prev.filter((o) => ids.includes(o.id)).map((o) => [o.id, o] as const));
       history.push({
-        apply: (list) => list.filter((o) => o.id !== id),
-        revert: (list) => (deleted ? [...list, deleted] : list),
+        apply: (list) => list.filter((o) => !ids.includes(o.id)),
+        revert: (list) => {
+          const restored: CanvasObject[] = [];
+          for (const o of list) restored.push(o);
+          for (const id of ids) {
+            const d = deletedMap.get(id);
+            if (d && !restored.find((x) => x.id === id)) restored.push(d);
+          }
+          return restored;
+        },
       });
-      return prev.filter((o) => o.id !== id);
+      return prev.filter((o) => !ids.includes(o.id));
     });
     setSelectedId(null);
     setSelectedIds([]);
-    void deleteObject(id);
-  }, [selectedId, deleteObject]);
+    for (const id of ids) void deleteObject(id);
+  }, [selectedId, selectedIds, deleteObject]);
 
   const copySelected = useCallback(() => {
-    if (!selectedId) return;
-    const source = objects.find((o) => o.id === selectedId);
-    if (!source) return;
-    const dup: CanvasObject = {
-      ...source,
+    const ids = selectedIds.length > 0 ? [...selectedIds] : (selectedId ? [selectedId] : []);
+    if (ids.length === 0) return;
+    const sources = objects.filter((o) => ids.includes(o.id));
+    if (sources.length === 0) return;
+    const dups: CanvasObject[] = sources.map((s, i) => ({
+      ...s,
       id: crypto.randomUUID(),
-      x: source.x + 24,
-      y: source.y + 24,
-    };
+      x: s.x + 24,
+      y: s.y + 24,
+      rotation: s.rotation,
+    }));
     setObjects((prev) => {
       history.push({
-        apply: (list) => [...list, dup],
-        revert: (list) => list.filter((o) => o.id !== dup.id),
+        apply: (list) => [...list, ...dups],
+        revert: (list) => list.filter((o) => !dups.some((d) => d.id === o.id)),
       });
-      return [...prev, dup];
+      return [...prev, ...dups];
     });
-    setSelectedId(dup.id);
-    setSelectedIds([dup.id]);
-    // Persist immediately to avoid losing the duplicate on refresh
-    void writeObject(dup, { immediate: true });
-  }, [objects, selectedId, writeObject]);
+    setSelectedId(dups[0].id);
+    setSelectedIds(dups.map((d) => d.id));
+    for (const dup of dups) void writeObject(dup, { immediate: true });
+  }, [objects, selectedId, selectedIds, writeObject]);
 
   const select = useCallback((id: string | null, additive?: boolean) => {
     if (id == null) {

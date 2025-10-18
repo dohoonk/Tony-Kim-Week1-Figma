@@ -38,7 +38,7 @@ function InnerCanvas() {
   const [marqueeStart, setMarqueeStart] = useState<{ x: number; y: number } | null>(null);
   const [marqueeRect, setMarqueeRect] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
 
-  const { objects, selectedId, updateShape, deleteSelected, copySelected, undo, redo, selectMany } = useCanvasObjects();
+  const { objects, selectedId, selectedIds, updateShape, deleteSelected, copySelected, undo, redo, selectMany } = useCanvasObjects();
   const { updateCursor } = useCursor(150);
   const { user } = useUser();
 
@@ -287,10 +287,13 @@ function InnerCanvas() {
       </CanvasViewProvider>
       <CommandInput />
       {(() => {
-        const sel = objects.find((o) => o.id === selectedId);
-        if (!sel) return null;
-        const left = position.x + (sel.x + sel.width + 8) * scale;
-        const top = position.y + sel.y * scale;
+        const ids = selectedIds.length > 0 ? selectedIds : (selectedId ? [selectedId] : []);
+        const selected = objects.filter((o) => ids.includes(o.id));
+        if (selected.length === 0) return null;
+        // place inspector to the right of the first selected
+        const anchor = selected[0];
+        const left = position.x + (anchor.x + anchor.width + 8) * scale;
+        const top = position.y + anchor.y * scale;
         return (
           <div
             style={{ position: 'absolute', left, top, zIndex: 21, background: '#fff', border: '1px solid #e2e8f0', borderRadius: 6, padding: 6, display: 'flex', gap: 8, alignItems: 'center' }}
@@ -299,8 +302,11 @@ function InnerCanvas() {
             <label style={{ fontSize: 12, color: '#475569' }}>Color</label>
             <input
               type="color"
-              value={sel.color}
-              onChange={(e) => updateShape(sel.id, { color: e.target.value }, { immediate: true })}
+              value={anchor.color}
+              onChange={(e) => {
+                const color = e.target.value;
+                for (const o of selected) updateShape(o.id, { color }, { immediate: true });
+              }}
               style={{ width: 28, height: 28, padding: 0, border: 'none', background: 'transparent' }}
             />
           </div>
