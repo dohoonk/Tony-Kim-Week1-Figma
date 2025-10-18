@@ -206,7 +206,8 @@ function InnerCanvas() {
       <div className="canvas-logout-box"><LogoutButton /></div>
       <ConnectionStatus />
       <PresenceBox />
-      <CanvasViewProvider value={{ stageWidth: stageSize.width, stageHeight: stageSize.height, scale, positionX: position.x, positionY: position.y }}>
+      <CanvasViewProvider value={{ stageWidth: stageSize.width, stageHeight: stageSize.height, scale, positionX: position.x, positionY: position.y, getStage: () => stageRef.current }}>
+        <CanvasToolbar />
         <Stage
           ref={stageRef}
           {...stageProps}
@@ -217,6 +218,7 @@ function InnerCanvas() {
           onMouseMove={handleMouseMove}
           onContextMenu={handleContextMenu}
           draggable={false}
+          onStageMouseEnter={() => { (window as unknown as { konvaStage?: Konva.Stage | null }).konvaStage = stageRef.current; }}
         >
           <Layer>
             {objects.map((o) => (
@@ -317,7 +319,6 @@ function InnerCanvas() {
 export default function Canvas() {
   return (
     <CanvasObjectsProvider>
-      <CanvasToolbar />
       <CanvasViewProvider value={{ stageWidth: 0, stageHeight: 0, scale: 1, positionX: 0, positionY: 0 }}>
         <InnerCanvas />
       </CanvasViewProvider>

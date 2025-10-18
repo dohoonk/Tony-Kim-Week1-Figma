@@ -7,6 +7,7 @@ export type CanvasViewState = {
   scale: number;
   positionX: number;
   positionY: number;
+  getStage?: () => any | null;
 };
 
 const CanvasViewContext = createContext<CanvasViewState | null>(null);
