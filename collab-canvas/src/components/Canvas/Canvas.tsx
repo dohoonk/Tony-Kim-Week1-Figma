@@ -14,6 +14,7 @@ import { useUser } from '../../context/UserContext';
 import PresenceBox from './PresenceBox';
 import LogoutButton from '../Auth/LogoutButton';
 import CommandInput from '../AI/CommandInput';
+import ConnectionStatus from '../UI/ConnectionStatus';
 
 const MIN_SCALE = 0.25;
 const MAX_SCALE = 4;
@@ -193,6 +194,7 @@ function InnerCanvas() {
   return (
     <div ref={containerRef} className="canvas-container" onContextMenu={(e) => e.preventDefault()}>
       <div className="canvas-logout-box"><LogoutButton /></div>
+      <ConnectionStatus />
       <PresenceBox />
       <CanvasViewProvider value={{ stageWidth: stageSize.width, stageHeight: stageSize.height, scale, positionX: position.x, positionY: position.y }}>
         <Stage
