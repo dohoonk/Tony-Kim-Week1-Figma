@@ -16,6 +16,7 @@ import LogoutButton from '../Auth/LogoutButton';
 import CommandInput from '../AI/CommandInput';
 import ConnectionStatus from '../UI/ConnectionStatus';
 import ComponentPanel from './ComponentPanel';
+import FpsOverlay from '../UI/FpsOverlay';
 
 const MIN_SCALE = 0.25;
 const MAX_SCALE = 4;
@@ -284,6 +285,7 @@ function InnerCanvas() {
           />
         </Stage>
         <ComponentPanel />
+        <FpsOverlay objectCount={objects.length} />
       </CanvasViewProvider>
       <CommandInput />
       {(() => {
