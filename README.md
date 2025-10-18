@@ -14,8 +14,8 @@ A real-time collaborative design canvas built with React, Konva, and Firebase. M
   - Presence TTL handled server-side; client filters stale entries after 3 minutes.
 - Sync model: full-document writes, debounced (~100ms) during drag/resize; conflict strategy is last-write-wins via `updatedAt: serverTimestamp()`.
 
-### Firestore Schema (MVP)
-- `canvasObjects/{id}`: `{ id, type, x, y, width, height, color, rotation, updatedAt }`
+### Firestore Schema (current)
+- `canvasObjects/{id}`: `{ id, type, x, y, width, height, color, opacity?, rotation, text?, fontSize?, textKind?, fontFamily?, isBold?, updatedAt, lastEditedBy?, lastEditedAt? }`
 - `cursors/{uid}`: `{ x, y, name, color, updatedAt }` (one doc per user)
 - `presence/{uid}`: `{ name, color, updatedAt, expiresAt }` (one doc per user)
 
@@ -40,19 +40,29 @@ A real-time collaborative design canvas built with React, Konva, and Firebase. M
 - Canvas interactions
   - Pan: right-drag or Space+drag
   - Zoom: wheel (clamped)
-  - Select: click; Delete/Backspace to remove
+  - Select single or multiple: click, Shift+click, or drag a selection rectangle (marquee)
+  - Group drag: dragging one item in a multi-selection moves the whole group
   - Resize and Rotate (Transformer handles; rotation persists)
-  - Copy: Cmd/Ctrl+C duplicates selected shape with an offset
+  - Copy: Cmd/Ctrl+C duplicates selected shapes with an offset
+  - Inspector (left panel near selection): shows “Last edited by …”, 5-color palette + color picker, text style (font, S/M/L/XL, Bold), and an opacity slider
 - Shapes
-  - Rectangle, Circle, Triangle; color assigned on create
+  - Rectangle, Circle, Triangle, Arrow, Text
 - Real-time sync (Firestore)
   - Full-document writes with `updatedAt: serverTimestamp()`
   - ~100ms debounce during drags/resizes
   - Listener orders by `updatedAt` for stable reloads
 - Multiplayer
   - Cursors: pointer-shaped, per-user color, labeled with display name
-  - Presence avatars: initials, per-user color, shown top-left under logout
+  - Presence avatars: initials, per-user color; displayed bottom-left
+  - Connection status: top-right pill shows Online/Reconnecting
   - Liveness: hide cursors/presence if no updates for 3 minutes
+- AI assistant
+  - Intercom-style launcher bottom-right opens a chat panel
+  - Uses Firebase HTTPS Function proxy for OpenAI tool-calling
+  - Supported intents: create shape/text, move/resize/rotate/set color, center/align/distribute, grid/row layout, generate login form
+- Export & components
+  - Export canvas to PNG or SVG
+  - Save selected objects as components and insert later
 - Routing
   - Landing page ("Tony's Figma" + Login)
   - `/canvas` page (fullscreen canvas, toolbar top-right, logout top-left)
@@ -168,6 +178,19 @@ Add to environments:
   - Confirm Functions secret `OPENAI_API_KEY` is set and the function was redeployed after setting.
   - Inspect DevTools Network for the `aiProxy` request status.
 - Firestore quota/high write rates → cursor throttling is 150ms and object writes batch at ~40–100ms; verify you’re not on a restricted quota or switch to emulator.
+
+### 6) AI Command Examples
+Use these in the chat panel:
+- "Create a blue rectangle in the center"
+- "Add a circle at x 200 y 300 with color #ff6b6b"
+- "Insert text ‘Welcome!’ at x 120 y 80 with font size 28"
+- "Move the selected object to x 420 y 220"
+- "Resize the selected object to width 300 height 160"
+- "Rotate the selected object to 45 degrees"
+- "Set the selected color to #10b981"
+- "Align the selection to the left edge"
+- "Arrange the current objects into a grid with 16 gap and 24 padding"
+- "Generate a login form with width 360, padding 24, gap 12, and button ‘Sign in’"
 
 ## Testing (lightweight for MVP)
 - Vitest + RTL setup included; canvas E2E/manual preferred due to DOM canvas limitations.
