@@ -29,6 +29,7 @@ export default function CanvasToolbar() {
       <button className="toolbar-btn" title="Rectangle" onClick={() => addShape('rectangle')}>Rect</button>
       <button className="toolbar-btn" title="Circle" onClick={() => addShape('circle')}>Circle</button>
       <button className="toolbar-btn" title="Triangle" onClick={() => addShape('triangle')}>Tri</button>
+      <button className="toolbar-btn" title="Arrow" onClick={() => addShape('arrow')}>Arrow</button>
       <button className="toolbar-btn" title="Text" onClick={() => addShape('text', { text: '', textKind: 'body' })}>Text</button>
       <div className="toolbar-sep" />
       <button className="toolbar-btn" title="Center" onClick={() => execute({ type: 'arrangeCenter' })}>Center</button>

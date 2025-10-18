@@ -1,4 +1,4 @@
-import { Circle as KCircle, Group, Rect as KRect, RegularPolygon, Transformer, Text as KText } from 'react-konva';
+import { Circle as KCircle, Group, Rect as KRect, RegularPolygon, Transformer, Text as KText, Arrow as KArrow } from 'react-konva';
 import type Konva from 'konva';
 import { useEffect, useRef } from 'react';
 import { useCanvasObjects } from '../../hooks/useCanvasObjects';
@@ -128,6 +128,17 @@ export default function Shape({ object, editingId, onEditText }: { object: Canva
             opacity={object.opacity ?? 1}
           />
         )}
+        {object.type === 'arrow' && (
+          <KArrow
+            points={[0, object.height / 2, object.width - 20, object.height / 2]}
+            pointerLength={12}
+            pointerWidth={12}
+            fill={object.color}
+            stroke={object.color}
+            strokeWidth={4}
+            opacity={object.opacity ?? 1}
+          />
+        )}
         {object.type === 'text' && (
           <KText
             x={0}
@@ -138,6 +149,8 @@ export default function Shape({ object, editingId, onEditText }: { object: Canva
             fontSize={
               object.fontSize ?? (object.textKind === 'heading' ? 32 : object.textKind === 'subtitle' ? 20 : 16)
             }
+            fontFamily={object.fontFamily ?? 'Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif'}
+            fontStyle={object.isBold ? 'bold' : 'normal'}
             fill={object.color}
             opacity={object.opacity ?? 1}
           />
@@ -151,6 +164,20 @@ export default function Shape({ object, editingId, onEditText }: { object: Canva
             stroke={'#6366f1'}
             dash={[4, 3]}
             strokeWidth={1}
+            listening={false}
+          />
+        )}
+        {/* Flash halo overlay for recent external edits (render on top) */}
+        {(((object as unknown) as { flashUntil?: number }).flashUntil ?? 0) > Date.now() && (
+          <KRect
+            x={-6}
+            y={-6}
+            width={object.width + 12}
+            height={object.height + 12}
+            stroke={(((object as unknown) as { flashColor?: string }).flashColor) || '#7c3aed'}
+            strokeWidth={4}
+            dash={[4, 4]}
+            opacity={0.9}
             listening={false}
           />
         )}

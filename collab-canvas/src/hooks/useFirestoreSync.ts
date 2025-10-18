@@ -47,6 +47,8 @@ export function useFirestoreSync(): FirestoreSync {
             lastEditedAtMs: (data.lastEditedAt as { toMillis?: () => number } | undefined)?.toMillis?.(),
             text: (data.text as string) ?? undefined,
             fontSize: (data.fontSize as number) ?? undefined,
+            fontFamily: (data.fontFamily as string) ?? undefined,
+            isBold: (data.isBold as boolean) ?? undefined,
           });
         });
         onChange(items);

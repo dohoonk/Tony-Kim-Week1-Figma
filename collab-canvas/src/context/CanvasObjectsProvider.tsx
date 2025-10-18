@@ -4,6 +4,7 @@ import { CanvasObjectsContext, newShape } from '../hooks/useCanvasObjects';
 import type { CanvasObject, ShapeType } from '../hooks/useCanvasObjects';
 import { useFirestoreSync } from '../hooks/useFirestoreSync';
 import { useHistory } from '../hooks/useHistory';
+import { usePresence } from '../hooks/usePresence';
 
 export default function CanvasObjectsProvider({ children }: { children: ReactNode }) {
   const [objects, setObjects] = useState<CanvasObject[]>([]);
@@ -21,6 +22,7 @@ export default function CanvasObjectsProvider({ children }: { children: ReactNod
 
   const { subscribe, writeObject, deleteObject, flushPending } = useFirestoreSync();
   const history = useHistory();
+  const { self, others } = usePresence();
 
   // Delegate batching entirely to useFirestoreSync.writeObject
 
@@ -37,12 +39,30 @@ export default function CanvasObjectsProvider({ children }: { children: ReactNod
         const next = new Map<string, typeof prev[number]>();
         for (const r of remote) {
           const suppressUntil = suppressRemoteRef.current.get(r.id) ?? 0;
+          let item: any = r;
           if (suppressUntil > now) {
             const local = prev.find((p) => p.id === r.id);
-            next.set(r.id, local ?? r);
-          } else {
-            next.set(r.id, r);
+            item = local ?? r;
           }
+          const before = prev.find((p) => p.id === r.id) as any;
+          const lastEditor = (item as any).lastEditedBy as string | undefined;
+          const lastEditedAtMs = (item as any).lastEditedAtMs as number | undefined;
+          let flashUntil: number | undefined = before?.flashUntil;
+          let flashColor: string | undefined = before?.flashColor;
+          let lastEditorName: string | undefined = before?.lastEditorName;
+          if (lastEditor) {
+            const p = (others || []).find((o) => o.uid === lastEditor) || (self && self.uid === lastEditor ? self : undefined);
+            if (p) {
+              flashColor = p.color;
+              lastEditorName = p.name;
+            }
+          }
+          if (before && lastEditedAtMs && before.lastEditedAtMs !== lastEditedAtMs) {
+            if (lastEditor && lastEditor !== self?.uid) {
+              flashUntil = now + 1500;
+            }
+          }
+          next.set(r.id, { ...(item as any), flashUntil, flashColor, lastEditorName } as any);
         }
         // If any local IDs not present remotely (e.g., optimistic), keep them
         for (const p of prev) if (!next.has(p.id)) next.set(p.id, p);

@@ -1,6 +1,6 @@
 import { createContext, useContext } from 'react';
 
-export type ShapeType = 'rectangle' | 'circle' | 'triangle' | 'text';
+export type ShapeType = 'rectangle' | 'circle' | 'triangle' | 'arrow' | 'text';
 
 export type CanvasObject = {
   id: string;
@@ -23,6 +23,8 @@ export type CanvasObject = {
   text?: string;
   fontSize?: number;
   textKind?: 'heading' | 'subtitle' | 'body';
+  fontFamily?: string;
+  isBold?: boolean;
 };
 
 export type CanvasObjectsState = {
@@ -69,6 +71,22 @@ export function newShape(type: ShapeType, idx: number): CanvasObject {
       rotation: 0,
       text: 'Text',
       fontSize: 24,
+    };
+  }
+  if (type === 'arrow') {
+    return {
+      id: crypto.randomUUID(),
+      type,
+      x: 120 + offset,
+      y: 120 + offset,
+      width: 160,
+      height: 40,
+      color: '#111827',
+      strokeColor: undefined,
+      strokeWidth: undefined,
+      strokeStyle: 'solid',
+      opacity: 1,
+      rotation: 0,
     };
   }
   return {

@@ -293,24 +293,73 @@ function InnerCanvas() {
         const selected = objects.filter((o) => ids.includes(o.id));
         if (selected.length === 0) return null;
         const anchor = selected[0];
-        const left = position.x + (anchor.x + anchor.width + 8) * scale;
-        const top = position.y + anchor.y * scale;
         const palette = ['#111827', '#ef4444', '#f59e0b', '#10b981', '#3b82f6'];
         return (
           <div
-            style={{ position: 'absolute', left, top, zIndex: 21, background: '#fff', border: '1px solid #e2e8f0', borderRadius: 8, padding: 8, display: 'flex', gap: 10, alignItems: 'center' }}
+            style={{
+              position: 'absolute', left: 12, top: 64, zIndex: 21, background: '#fff', border: '1px solid #e2e8f0',
+              borderRadius: 10, padding: 12, display: 'grid', rowGap: 10, width: 460
+            }}
             onPointerDown={(e) => e.stopPropagation()}
           >
-            <div style={{ display: 'flex', gap: 6 }}>
-              {palette.map((c) => (
-                <button key={c} className="toolbar-btn" style={{ width: 22, height: 22, borderRadius: 4, background: c, border: '1px solid #cbd5e1' }} onClick={() => { for (const o of selected) updateShape(o.id, { color: c }, { immediate: true }); }} />
-              ))}
+            {/* Row 1: last edited */}
+            <div style={{ fontSize: 11, color: '#64748b' }}>
+              {(((anchor as unknown) as { lastEditorName?: string; lastEditedAtMs?: number }).lastEditorName) && (
+                (() => {
+                  const meta = (anchor as unknown) as { lastEditorName?: string; lastEditedAtMs?: number };
+                  const time = meta.lastEditedAtMs ? ` • ${new Date(meta.lastEditedAtMs).toLocaleTimeString()}` : '';
+                  return <>Last edited by {meta.lastEditorName}{time}</>;
+                })()
+              )}
             </div>
-            <input type="color" value={anchor.color} onChange={(e) => { const c = e.target.value; for (const o of selected) updateShape(o.id, { color: c }, { immediate: true }); }} style={{ width: 28, height: 28, border: '1px solid #cbd5e1', borderRadius: 4, background: 'transparent' }} />
-            <div className="toolbar-sep" />
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <label style={{ fontSize: 12, color: '#475569' }}>Opacity</label>
-              <input type="range" min={0} max={100} value={Math.round((anchor.opacity ?? 1) * 100)} onChange={(e) => { const v = Math.min(1, Math.max(0, Number(e.target.value) / 100)); for (const o of selected) updateShape(o.id, { opacity: v }, { immediate: true }); }} />
+            {/* Row 2: color */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <label style={{ fontSize: 12, color: '#475569', minWidth: 60 }}>Color</label>
+              <div style={{ display: 'flex', gap: 6 }}>
+                {palette.map((c) => (
+                  <button key={c} className="toolbar-btn" style={{ width: 22, height: 22, borderRadius: 4, background: c, border: '1px solid #cbd5e1' }} onClick={() => { for (const o of selected) updateShape(o.id, { color: c }, { immediate: true }); }} />
+                ))}
+              </div>
+              <input type="color" value={anchor.color} onChange={(e) => { const c = e.target.value; for (const o of selected) updateShape(o.id, { color: c }, { immediate: true }); }} style={{ width: 28, height: 28, border: '1px solid #cbd5e1', borderRadius: 4, background: 'transparent', marginLeft: 6 }} />
+            </div>
+            {/* Row 3: text style (only for text) */}
+            {anchor.type === 'text' && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <label style={{ fontSize: 12, color: '#475569', minWidth: 60 }}>Text</label>
+                <select
+                  value={(() => { const f = (anchor as unknown as { fontFamily?: string }).fontFamily; return f ?? 'Inter'; })()}
+                  onChange={(e) => { const v = e.target.value; for (const o of selected) updateShape(o.id, { fontFamily: v }, { immediate: true }); }}
+                  style={{ border: '1px solid #cbd5e1', height: 28, borderRadius: 6 }}
+                >
+                  <option value="Inter">Inter</option>
+                  <option value="Georgia, serif">Georgia</option>
+                  <option value="Times New Roman, serif">Times</option>
+                  <option value="Courier New, monospace">Courier</option>
+                </select>
+                <select
+                  value={String((anchor as unknown as { fontSize?: number }).fontSize ?? 16)}
+                  onChange={(e) => { const map: Record<string, number> = { s: 14, m: 16, l: 20, xl: 28 }; const v = e.target.value as keyof typeof map; const size = map[v] ?? Number(e.target.value); for (const o of selected) updateShape(o.id, { fontSize: size }, { immediate: true }); }}
+                  style={{ border: '1px solid #cbd5e1', height: 28, borderRadius: 6 }}
+                >
+                  <option value="s">S</option>
+                  <option value="m">M</option>
+                  <option value="l">L</option>
+                  <option value="xl">XL</option>
+                </select>
+                <button
+                  className="toolbar-btn"
+                  title="Bold"
+                  onClick={() => { const cur = (anchor as unknown as { isBold?: boolean }).isBold ?? false; for (const o of selected) updateShape(o.id, { isBold: !cur }, { immediate: true }); }}
+                  style={{ width: 28, height: 28, fontWeight: 700 }}
+                >
+                  B
+                </button>
+              </div>
+            )}
+            {/* Row 4: opacity */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <label style={{ fontSize: 12, color: '#475569', minWidth: 60 }}>Opacity</label>
+              <input style={{ flex: 1, width: '100%' }} type="range" min={0} max={100} value={Math.round((anchor.opacity ?? 1) * 100)} onChange={(e) => { const v = Math.min(1, Math.max(0, Number(e.target.value) / 100)); for (const o of selected) updateShape(o.id, { opacity: v }, { immediate: true }); }} />
             </div>
           </div>
         );
