@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, useCallback } from 'react';
 import { db } from '../utils/firebase';
-import { collection, doc, onSnapshot, setDoc, serverTimestamp, addDoc } from 'firebase/firestore';
+import { collection, onSnapshot, serverTimestamp, addDoc } from 'firebase/firestore';
 import { useUser } from '../context/UserContext';
 import type { CanvasObject } from './useCanvasObjects';
 import { useCanvasObjects } from './useCanvasObjects';
@@ -23,7 +23,7 @@ function sanitize(obj: CanvasObject): CanvasObject {
 
 export function useComponents() {
   const { user } = useUser();
-  const { objects, selectedId, addShape } = useCanvasObjects();
+  const { objects, selectedId, selectedIds, addShape, selectMany } = useCanvasObjects();
   const [items, setItems] = useState<ComponentItem[]>([]);
 
   useEffect(() => {
@@ -46,37 +46,46 @@ export function useComponents() {
   }, [user]);
 
   const saveSelected = useCallback(async (name: string) => {
-    if (!user || !selectedId) return;
-    const obj = objects.find((o) => o.id === selectedId);
-    if (!obj) return;
+    if (!user) return;
+    const ids = selectedIds.length > 0 ? selectedIds : (selectedId ? [selectedId] : []);
+    if (ids.length === 0) return;
+    const picked = objects.filter((o) => ids.includes(o.id));
+    if (picked.length === 0) return;
     const col = collection(db, 'components', user.uid, 'items');
     const payload = {
       name,
-      objects: [sanitize(obj)],
+      objects: picked.map((o) => sanitize(o)),
       createdAt: serverTimestamp(),
     } as any;
     await addDoc(col, payload);
-  }, [user, selectedId, objects]);
+  }, [user, selectedId, selectedIds, objects]);
 
   const insert = useCallback(async (itemId: string) => {
     const item = items.find((i) => i.id === itemId);
     if (!item || item.objects.length === 0) return;
-    // For now, insert the first object only; offset slightly.
-    // Important: do NOT pass the saved id back in, let addShape generate a new one.
-    const base = item.objects[0] as any;
-    const initial = {
-      x: (base.x ?? 0) + 20,
-      y: (base.y ?? 0) + 20,
-      width: base.width,
-      height: base.height,
-      color: base.color,
-      rotation: base.rotation,
-      text: base.text,
-      fontSize: base.fontSize,
-      textKind: base.textKind,
-    } as Partial<CanvasObject>;
-    addShape(base.type as any, initial);
-  }, [items, addShape]);
+    const objs = item.objects as unknown as CanvasObject[];
+    const minX = Math.min(...objs.map((o) => o.x));
+    const minY = Math.min(...objs.map((o) => o.y));
+    const newIds: string[] = [];
+    for (const base of objs) {
+      const newId = crypto.randomUUID();
+      newIds.push(newId);
+      const initial: Partial<CanvasObject> = {
+        id: newId,
+        x: (base.x ?? 0) - minX + 20,
+        y: (base.y ?? 0) - minY + 20,
+        width: base.width,
+        height: base.height,
+        color: base.color,
+        rotation: base.rotation,
+        text: base.text,
+        fontSize: base.fontSize,
+        textKind: base.textKind,
+      };
+      addShape(base.type as any, initial);
+    }
+    if (newIds.length > 0) selectMany(newIds);
+  }, [items, addShape, selectMany]);
 
   return useMemo(() => ({ items, saveSelected, insert }), [items, saveSelected, insert]);
 }
