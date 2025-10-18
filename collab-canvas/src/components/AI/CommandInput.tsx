@@ -5,6 +5,7 @@ export default function CommandInput() {
   const { execute } = useAIAgent();
   const [value, setValue] = useState('');
   const [flash, setFlash] = useState<string | null>(null);
+  const [open, setOpen] = useState(false);
 
   const proxyUrl = (import.meta as any).env?.VITE_AI_PROXY_URL as string | undefined;
 
@@ -278,24 +279,76 @@ export default function CommandInput() {
     }
   };
 
-  return (
-    <div style={{ position: 'absolute', bottom: 16, left: 16, zIndex: 30 }}>
-      {flash && (
-        <div style={{ marginBottom: 8, background: '#fee2e2', color: '#991b1b', border: '1px solid #fecaca', borderRadius: 6, padding: '6px 10px' }}>
-          {flash}
-        </div>
-      )}
-      <form onSubmit={onSubmit} style={{ display: 'flex', gap: 8 }}>
+  const launcher = (
+    <button
+      aria-label="Open AI Assistant"
+      onClick={() => setOpen(true)}
+      style={{
+        position: 'fixed',
+        right: 20,
+        bottom: 20,
+        width: 56,
+        height: 56,
+        borderRadius: 28,
+        border: '1px solid #e2e8f0',
+        background: '#4f46e5',
+        color: '#fff',
+        boxShadow: '0 8px 24px rgba(79,70,229,0.35)',
+        cursor: 'pointer',
+        zIndex: 40,
+      }}
+    >
+      AI
+    </button>
+  );
+
+  const panel = (
+    <div
+      role="dialog"
+      aria-label="AI Assistant"
+      style={{
+        position: 'fixed',
+        right: 16,
+        bottom: 16,
+        width: 380,
+        height: 480,
+        display: 'flex',
+        flexDirection: 'column',
+        background: '#0b1220',
+        color: '#e2e8f0',
+        border: '1px solid #1f2937',
+        borderRadius: 16,
+        overflow: 'hidden',
+        zIndex: 40,
+        boxShadow: '0 20px 40px rgba(2,6,23,0.5)'
+      }}
+      onPointerDown={(e) => e.stopPropagation()}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', background: 'rgba(255,255,255,0.04)', borderBottom: '1px solid #1f2937' }}>
+        <div style={{ fontWeight: 600 }}>Canvas Assistant</div>
+        <button onClick={() => setOpen(false)} style={{ background: 'transparent', color: '#94a3b8', border: 'none', cursor: 'pointer' }}>×</button>
+      </div>
+      <div style={{ flex: 1, padding: 12, overflow: 'auto', fontSize: 13, color: '#cbd5e1' }}>
+        {flash && (
+          <div style={{ marginBottom: 8, background: '#fee2e2', color: '#991b1b', border: '1px solid #fecaca', borderRadius: 6, padding: '6px 10px' }}>
+            {flash}
+          </div>
+        )}
+        <div style={{ opacity: 0.8 }}>Ask things like “Create a blue rectangle in the center”.</div>
+      </div>
+      <form onSubmit={onSubmit} style={{ display: 'flex', gap: 8, padding: 12, background: 'rgba(255,255,255,0.03)', borderTop: '1px solid #1f2937' }}>
         <input
           value={value}
           onChange={(e) => setValue(e.target.value)}
-          placeholder={proxyUrl ? 'Ask the AI (e.g., Create a blue rectangle in the center)' : 'Try: rectangle | circle | triangle | text hello | color #ff00aa'}
-          style={{ width: 420, padding: '8px 10px', border: '1px solid #e2e8f0', borderRadius: 8 }}
+          placeholder={proxyUrl ? 'Ask the AI…' : 'Try: rectangle | circle | triangle | text hello'}
+          style={{ flex: 1, padding: '10px 12px', border: '1px solid #334155', background: '#0b1220', color: '#e2e8f0', borderRadius: 12, outline: 'none' }}
         />
-        <button type="submit" style={{ padding: '8px 12px', borderRadius: 8, border: '1px solid #e2e8f0', background: '#fff' }}>Run</button>
+        <button type="submit" style={{ padding: '10px 14px', borderRadius: 12, border: '1px solid #334155', background: '#111827', color: '#e2e8f0' }}>Send</button>
       </form>
     </div>
   );
+
+  return open ? panel : launcher;
 }
 
 
