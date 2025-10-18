@@ -1,11 +1,20 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useAIAgent } from '../../hooks/useAIAgent';
+import { db } from '../../utils/firebase';
+import { addDoc, collection, onSnapshot, orderBy, query, serverTimestamp } from 'firebase/firestore';
+import { useUser } from '../../context/UserContext';
 
 export default function CommandInput() {
   const { execute } = useAIAgent();
   const [value, setValue] = useState('');
   const [flash, setFlash] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
+  const [messages, setMessages] = useState<Array<{ id: string; role: 'user' | 'ai'; text: string; createdAtMs?: number }>>([]);
+  const { user } = useUser();
+  const sessionIdRef = useRef<string>((() => {
+    try { return crypto.randomUUID(); } catch { return String(Date.now()); }
+  })());
+  const listRef = useRef<HTMLDivElement>(null);
 
   const proxyUrl = (import.meta as any).env?.VITE_AI_PROXY_URL as string | undefined;
 
@@ -176,6 +185,17 @@ export default function CommandInput() {
     e.preventDefault();
     const v = value.trim();
     if (!v) return;
+    // optimistic user message
+    setValue('');
+    const userMsg = { role: 'user' as const, text: v };
+    setMessages((prev) => [...prev, { id: Math.random().toString(36).slice(2), ...userMsg }]);
+    // persist
+    if (user) {
+      try {
+        const col = collection(db, 'chats', user.uid, 'sessions', sessionIdRef.current, 'messages');
+        await addDoc(col, { role: 'user', text: v, createdAt: serverTimestamp() });
+      } catch { /* ignore */ }
+    }
 
     // If proxy is configured, use function calling
     if (proxyUrl) {
@@ -254,7 +274,14 @@ export default function CommandInput() {
             }
           }
           if (executed) {
-            setValue('');
+            const aiText = '✨ All set!';
+            setMessages((prev) => [...prev, { id: Math.random().toString(36).slice(2), role: 'ai', text: aiText }]);
+            if (user) {
+              try {
+                const col = collection(db, 'chats', user.uid, 'sessions', sessionIdRef.current, 'messages');
+                await addDoc(col, { role: 'ai', text: aiText, createdAt: serverTimestamp() });
+              } catch { /* ignore */ }
+            }
             return;
           }
         }
@@ -271,13 +298,38 @@ export default function CommandInput() {
     else if (v.startsWith('text ')) { execute({ type: 'createText', payload: { text: v.slice(5) } }); executedLocal = true; }
     else if (v.startsWith('color ')) { execute({ type: 'setColorSelected', payload: { color: v.slice(6) } }); executedLocal = true; }
 
-    if (executedLocal) {
-      setValue('');
-    } else {
+    if (!executedLocal) {
       setFlash('Please try a different command');
       window.setTimeout(() => setFlash(null), 2000);
+    } else {
+      const aiText = '✨ All set!';
+      setMessages((prev) => [...prev, { id: Math.random().toString(36).slice(2), role: 'ai', text: aiText }]);
+      if (user) {
+        try {
+          const col = collection(db, 'chats', user.uid, 'sessions', sessionIdRef.current, 'messages');
+          await addDoc(col, { role: 'ai', text: aiText, createdAt: serverTimestamp() });
+        } catch { /* ignore */ }
+      }
     }
   };
+
+  // subscribe to chat history for this session (optional per user)
+  useEffect(() => {
+    if (!user) return;
+    const col = collection(db, 'chats', user.uid, 'sessions', sessionIdRef.current, 'messages');
+    const q = query(col, orderBy('createdAt', 'asc'));
+    const unsub = onSnapshot(q, (snap) => {
+      const next: Array<{ id: string; role: 'user' | 'ai'; text: string; createdAtMs?: number }> = [];
+      snap.forEach((d) => {
+        const data = d.data() as any;
+        next.push({ id: d.id, role: (data.role as 'user' | 'ai') ?? 'ai', text: data.text ?? '', createdAtMs: data.createdAt?.toMillis?.() });
+      });
+      setMessages(next);
+      // auto-scroll
+      setTimeout(() => { listRef.current?.scrollTo({ top: 1e9, behavior: 'smooth' }); }, 0);
+    });
+    return unsub;
+  }, [user]);
 
   const launcher = (
     <button
@@ -328,13 +380,16 @@ export default function CommandInput() {
         <div style={{ fontWeight: 600 }}>Canvas Assistant</div>
         <button onClick={() => setOpen(false)} style={{ background: 'transparent', color: '#94a3b8', border: 'none', cursor: 'pointer' }}>×</button>
       </div>
-      <div style={{ flex: 1, padding: 12, overflow: 'auto', fontSize: 13, color: '#cbd5e1' }}>
+      <div ref={listRef} style={{ flex: 1, padding: 12, overflow: 'auto', fontSize: 13, color: '#cbd5e1', display: 'flex', flexDirection: 'column', gap: 8 }}>
         {flash && (
-          <div style={{ marginBottom: 8, background: '#fee2e2', color: '#991b1b', border: '1px solid #fecaca', borderRadius: 6, padding: '6px 10px' }}>
-            {flash}
-          </div>
+          <div style={{ background: '#fee2e2', color: '#991b1b', border: '1px solid #fecaca', borderRadius: 6, padding: '6px 10px' }}>{flash}</div>
         )}
-        <div style={{ opacity: 0.8 }}>Ask things like “Create a blue rectangle in the center”.</div>
+        {messages.length === 0 && <div style={{ opacity: 0.8 }}>Ask things like “Create a blue rectangle in the center”.</div>}
+        {messages.map((m) => (
+          <div key={m.id} style={{ alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start', background: m.role === 'user' ? '#1f2937' : '#0b1220', border: '1px solid #334155', padding: '8px 10px', borderRadius: 10, maxWidth: '80%' }}>
+            {m.text}
+          </div>
+        ))}
       </div>
       <form onSubmit={onSubmit} style={{ display: 'flex', gap: 8, padding: 12, background: 'rgba(255,255,255,0.03)', borderTop: '1px solid #1f2937' }}>
         <input

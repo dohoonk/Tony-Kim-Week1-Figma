@@ -356,6 +356,37 @@ function InnerCanvas() {
                 </button>
               </div>
             )}
+            {/* Row 3b: size (all objects) */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <label style={{ fontSize: 12, color: '#475569', minWidth: 60 }}>Size</label>
+              <input
+                type="number"
+                min={10}
+                step={2}
+                value={Math.round(anchor.width)}
+                onChange={(e) => {
+                  const n = Number(e.target.value);
+                  if (Number.isFinite(n) && n >= 10) {
+                    for (const o of selected) updateShape(o.id, { width: n }, { immediate: true });
+                  }
+                }}
+                style={{ width: 80, border: '1px solid #cbd5e1', height: 28, borderRadius: 6, padding: '0 6px' }}
+              />
+              <span style={{ color: '#94a3b8', fontSize: 12 }}>×</span>
+              <input
+                type="number"
+                min={10}
+                step={2}
+                value={Math.round(anchor.height)}
+                onChange={(e) => {
+                  const n = Number(e.target.value);
+                  if (Number.isFinite(n) && n >= 10) {
+                    for (const o of selected) updateShape(o.id, { height: n }, { immediate: true });
+                  }
+                }}
+                style={{ width: 80, border: '1px solid #cbd5e1', height: 28, borderRadius: 6, padding: '0 6px' }}
+              />
+            </div>
             {/* Row 4: opacity */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <label style={{ fontSize: 12, color: '#475569', minWidth: 60 }}>Opacity</label>
