@@ -10,7 +10,9 @@ export type AICommandType =
   | 'distributeObjects'
   | 'setTextKindSelected'
   | 'gridLayout'
-  | 'rowLayout';
+  | 'rowLayout'
+  | 'generateLoginForm'
+  | 'autoLayout';
 
 export type CreateShapePayload = {
   type: 'rectangle' | 'circle' | 'triangle';
@@ -36,6 +38,14 @@ export type DistributeObjectsPayload = { axis: 'horizontal' | 'vertical' };
 export type SetTextKindSelectedPayload = { kind: 'heading' | 'subtitle' | 'body' };
 export type GridLayoutPayload = { gap?: number; padding?: number };
 export type RowLayoutPayload = { gap?: number; padding?: number };
+export type GenerateLoginFormPayload = {
+  width?: number;
+  padding?: number;
+  gap?: number;
+  color?: string; // button color
+  title?: string;
+  buttonText?: string;
+};
 
 export type AICommand =
   | { type: 'createShape'; payload: CreateShapePayload }
@@ -49,6 +59,8 @@ export type AICommand =
   | { type: 'distributeObjects'; payload: DistributeObjectsPayload }
   | { type: 'setTextKindSelected'; payload: SetTextKindSelectedPayload }
   | { type: 'gridLayout'; payload: GridLayoutPayload }
-  | { type: 'rowLayout'; payload: RowLayoutPayload };
+  | { type: 'rowLayout'; payload: RowLayoutPayload }
+  | { type: 'generateLoginForm'; payload: GenerateLoginFormPayload }
+  | { type: 'autoLayout' };
 
 

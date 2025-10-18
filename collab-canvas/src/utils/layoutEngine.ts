@@ -1,4 +1,4 @@
-export function centerWithin(x: number, y: number, width: number, height: number, containerWidth: number, containerHeight: number) {
+export function centerWithin(_x: number, _y: number, width: number, height: number, containerWidth: number, containerHeight: number) {
   const cx = Math.max(0, Math.floor((containerWidth - width) / 2));
   const cy = Math.max(0, Math.floor((containerHeight - height) / 2));
   return { x: cx, y: cy };
@@ -23,7 +23,7 @@ export function clampWithin(containerWidth: number, containerHeight: number, wid
   return { x, y };
 }
 
-export function gridPositions(count: number, containerWidth: number, containerHeight: number, itemWidth: number, itemHeight: number, gap = 16) {
+export function gridPositions(count: number, containerWidth: number, _containerHeight: number, itemWidth: number, itemHeight: number, gap = 16) {
   const cols = Math.max(1, Math.floor((containerWidth + gap) / (itemWidth + gap)));
   const positions: Array<{ x: number; y: number }> = [];
   for (let i = 0; i < count; i++) {

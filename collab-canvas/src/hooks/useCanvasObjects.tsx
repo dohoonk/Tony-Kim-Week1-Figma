@@ -10,6 +10,10 @@ export type CanvasObject = {
   width: number;
   height: number;
   color: string;
+  strokeColor?: string;
+  strokeWidth?: number;
+  strokeStyle?: 'solid' | 'dashed' | 'dotted';
+  opacity?: number; // 0..1
   rotation: number;
   // LWW metadata (optional until next write)
   updatedAtMs?: number;
@@ -58,6 +62,10 @@ export function newShape(type: ShapeType, idx: number): CanvasObject {
       width: base.width,
       height: base.height,
       color: '#111827',
+      strokeColor: '#111827',
+      strokeWidth: 0,
+      strokeStyle: 'solid',
+      opacity: 1,
       rotation: 0,
       text: 'Text',
       fontSize: 24,
@@ -71,6 +79,10 @@ export function newShape(type: ShapeType, idx: number): CanvasObject {
     width: type === 'circle' ? 120 : base.width,
     height: type === 'circle' ? 120 : base.height,
     color: randomColor(),
+    strokeColor: '#111827',
+    strokeWidth: 2,
+    strokeStyle: 'solid',
+    opacity: 1,
     rotation: 0,
   };
 }

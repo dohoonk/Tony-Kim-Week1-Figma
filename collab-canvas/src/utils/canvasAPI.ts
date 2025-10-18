@@ -1,4 +1,3 @@
-import { newShape } from '../hooks/useCanvasObjects';
 import type { ShapeType, CanvasObject } from '../hooks/useCanvasObjects';
 
 export type CanvasAPI = {

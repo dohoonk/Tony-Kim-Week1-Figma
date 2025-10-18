@@ -15,6 +15,7 @@ pnpm-debug.log*
 .env.*
 !.env.example
 .env.local
+functions/.env.local
 
 # Firebase / Vercel
 .firebase/

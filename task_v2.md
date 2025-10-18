@@ -48,12 +48,12 @@ Ensure consistent and reliable shared state under concurrent edits, with no ghos
 `src/hooks/useFirestoreSync.ts`, `src/hooks/useCanvasObjects.ts`, `src/components/Canvas/Shape.tsx`, `src/utils/firebase.ts`, `__tests__/conflict/StateResolution.test.ts`
 
 **Checklist:**
-- [ ] Implement LWW conflict resolution  
-- [ ] Add metadata fields: `lastEditedBy`, `lastEditedAt` (optional until next write)  
-- [ ] Create `mergeObjectState(local, remote)` utility  
-- [ ] Prevent ghost/duplicate objects with an in-memory ID index set  
-- [ ] Add visual metadata to tooltip/inspector only  
-- [ ] Test rapid edits (10+ updates/sec) under load
+- [x] Implement LWW conflict resolution  
+- [x] Add metadata fields: `lastEditedBy`, `lastEditedAt` (optional until next write)  
+- [x] Create `mergeObjectState(local, remote)` utility  
+- [x] Prevent ghost/duplicate objects with an in-memory ID index set  
+- [x] Add visual metadata to tooltip/inspector only  
+- [x] Test rapid edits (10+ updates/sec) under load
 
 **Deliverables:**  
 - Updated state merge logic  
@@ -70,9 +70,9 @@ Add text objects to the canvas with render, persistence, and basic manipulation 
 **Files:** `src/components/Canvas/Shape.tsx`, `src/hooks/useCanvasObjects.tsx`, `src/utils/firebase.ts`
 
 **Checklist:**
-- [ ] Implement text object type and rendering  
-- [ ] Persist `text`, `fontSize`, `color`, `rotation`  
-- [ ] Update selection/transformer to support text  
+- [x] Implement text object type and rendering  
+- [x] Persist `text`, `fontSize`, `color`, `rotation`  
+- [x] Update selection/transformer to support text  
 - [ ] Include text in export (PNG/SVG)
 
 ---
@@ -93,11 +93,11 @@ Add AI command interface that allows users to manipulate the canvas through natu
 
 **Checklist:**
 - [ ] Implement `CommandInput.tsx` floating modal for text commands  
-- [ ] Define tool schema in `schema.ts`  
-- [ ] Integrate AI → Canvas API execution pipeline  
-- [ ] Log raw AI prompts + responses in Firestore  
-- [ ] Handle Firebase Cloud Function proxy for OpenAI requests  
-- [ ] Enforce max 50 generated shapes per command  
+- [x] Define tool schema in `schema.ts`  
+- [x] Integrate AI → Canvas API execution pipeline  
+- [x] Log raw AI prompts + responses in Firestore  
+- [x] Handle Firebase Cloud Function proxy for OpenAI requests  
+- [x] Enforce max 50 generated shapes per command  
 - [ ] Add feedback for invalid/ambiguous commands  
 
 **Tests:**  
@@ -119,10 +119,10 @@ Support structured layouts and multi-step AI commands (e.g. grids, rows, login f
 `src/utils/layoutEngine.ts`, `src/ai/agent.ts`, `src/utils/canvasAPI.ts`, `__tests__/layout/LayoutEngine.test.ts`
 
 **Checklist:**
-- [ ] Implement layout utilities for grid, row, spacing  
-- [ ] Add bounding box enforcement logic  
-- [ ] Add helper for relative positioning and padding  
-- [ ] Support templates (“login form”, “navbar”, “card layout”)  
+- [x] Implement layout utilities for grid, row, spacing  
+- [x] Add bounding box enforcement logic  
+- [x] Add helper for relative positioning and padding  
+- [x] Support templates (“login form”, “navbar”, “card layout”)  
 - [ ] Validate generated layout fits within canvas bounds  
 
 **Deliverables:**  
@@ -146,9 +146,9 @@ Ensure users always return to the exact same state after refresh or temporary di
 
 **Checklist:**
 - [ ] Implement Firestore persistence for reconnect  
-- [ ] Auto-reconnect with delta replay logic  
-- [ ] Queue edits for 1 minute max during disconnect  
-- [ ] Display connection status in UI  
+- [x] Auto-reconnect with delta replay logic  
+- [x] Queue edits for 1 minute max during disconnect  
+- [x] Display connection status in UI  
 - [ ] Verify state consistency after reconnect  
 
 **Deliverables:**  
@@ -172,10 +172,10 @@ Implement full undo/redo functionality for manual and AI-driven actions.
 `src/hooks/useHistory.ts`, `src/components/Canvas/Canvas.tsx`, `src/hooks/useCanvasObjects.ts`, `src/utils/history.ts`
 
 **Checklist:**
-- [ ] Create `useHistory` hook managing operation stack  
-- [ ] Support Cmd+Z / Cmd+Shift+Z keyboard shortcuts  
+- [x] Create `useHistory` hook managing operation stack  
+- [x] Support Cmd+Z / Cmd+Shift+Z keyboard shortcuts  
 - [ ] Sync undo/redo stack with Firestore  
-- [ ] Include AI-driven changes in history  
+- [x] Include AI-driven changes in history  
 - [ ] Prevent history conflicts on reconnect  
 
 **Deliverables:**  
@@ -226,14 +226,14 @@ Enable users to export canvas or selected objects, and create reusable component
 `src/utils/export.ts`, `src/hooks/useComponents.ts`, `src/components/Canvas/ExportMenu.tsx`, `src/components/Canvas/ComponentPanel.tsx`
 
 **Checklist:**
-- [ ] Implement export to PNG/SVG  
-- [ ] Add toolbar export option  
-- [ ] Create `useComponents` hook for grouping  
+- [x] Implement export to PNG/SVG  
+- [x] Add toolbar export option  
+- [x] Create `useComponents` hook for grouping  
 - [ ] Auto-sync symbols across canvases  
-- [ ] Store component definitions under `/components/{userId}`  
+- [x] Store component definitions under `/components/{userId}`  
 
 **Deliverables:**  
-- Export + Component system  
+- Export + Component system   
 - Component management UI  
 - Unit + integration tests
 

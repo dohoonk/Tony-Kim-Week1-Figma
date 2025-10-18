@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, setPersistence, browserLocalPersistence } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import { getFirestore, enableIndexedDbPersistence } from 'firebase/firestore';
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY as string,
@@ -20,6 +20,10 @@ setPersistence(auth, browserLocalPersistence).catch(() => {
 });
 
 const db = getFirestore(app);
+// Enable Firestore local persistence for offline reliability
+enableIndexedDbPersistence(db).catch(() => {
+  // Ignore: may fail in unsupported browsers or multi-tab; Firestore will still work online
+});
 const googleProvider = new GoogleAuthProvider();
 
 export { app, auth, db, googleProvider };

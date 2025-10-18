@@ -118,7 +118,7 @@ export default function CanvasObjectsProvider({ children }: { children: ReactNod
     if (ids.length === 0) return;
     const sources = objects.filter((o) => ids.includes(o.id));
     if (sources.length === 0) return;
-    const dups: CanvasObject[] = sources.map((s, i) => ({
+    const dups: CanvasObject[] = sources.map((s) => ({
       ...s,
       id: crypto.randomUUID(),
       x: s.x + 24,

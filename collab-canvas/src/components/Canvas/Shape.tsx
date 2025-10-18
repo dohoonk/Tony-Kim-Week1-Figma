@@ -96,6 +96,10 @@ export default function Shape({ object, editingId, onEditText }: { object: Canva
             width={object.width}
             height={object.height}
             fill={object.color}
+            stroke={undefined}
+            strokeWidth={undefined as unknown as number}
+            dash={undefined}
+            opacity={object.opacity ?? 1}
             cornerRadius={8}
           />
         )}
@@ -105,6 +109,10 @@ export default function Shape({ object, editingId, onEditText }: { object: Canva
             y={object.height / 2}
             radius={Math.min(object.width, object.height) / 2}
             fill={object.color}
+            stroke={undefined}
+            strokeWidth={undefined as unknown as number}
+            dash={undefined}
+            opacity={object.opacity ?? 1}
           />
         )}
         {object.type === 'triangle' && (
@@ -114,6 +122,10 @@ export default function Shape({ object, editingId, onEditText }: { object: Canva
             sides={3}
             radius={Math.min(object.width, object.height) / 2}
             fill={object.color}
+            stroke={undefined}
+            strokeWidth={undefined as unknown as number}
+            dash={undefined}
+            opacity={object.opacity ?? 1}
           />
         )}
         {object.type === 'text' && (
@@ -127,6 +139,7 @@ export default function Shape({ object, editingId, onEditText }: { object: Canva
               object.fontSize ?? (object.textKind === 'heading' ? 32 : object.textKind === 'subtitle' ? 20 : 16)
             }
             fill={object.color}
+            opacity={object.opacity ?? 1}
           />
         )}
         {isMultiSelected && (

@@ -158,6 +158,17 @@ export default function CommandInput() {
         }
       }
     },
+    {
+      type: 'function',
+      function: {
+        name: 'generateLoginForm',
+        description: 'Generate a simple login form (title, two inputs, button) centered with padding',
+        parameters: {
+          type: 'object',
+          properties: { width: { type: 'number' }, padding: { type: 'number' }, gap: { type: 'number' }, color: { type: 'string' }, title: { type: 'string' }, buttonText: { type: 'string' } }
+        }
+      }
+    },
   ];
 
   const onSubmit = async (e: React.FormEvent) => {
@@ -227,6 +238,10 @@ export default function CommandInput() {
                 break;
               case 'rowLayout':
                 execute({ type: 'rowLayout', payload: { gap: args.gap, padding: args.padding } });
+                executed = true;
+                break;
+              case 'generateLoginForm':
+                execute({ type: 'generateLoginForm', payload: { width: args.width, padding: args.padding, gap: args.gap, color: args.color, title: args.title, buttonText: args.buttonText } });
                 executed = true;
                 break;
               case 'arrangeCenter':

@@ -292,25 +292,26 @@ function InnerCanvas() {
         const ids = selectedIds.length > 0 ? selectedIds : (selectedId ? [selectedId] : []);
         const selected = objects.filter((o) => ids.includes(o.id));
         if (selected.length === 0) return null;
-        // place inspector to the right of the first selected
         const anchor = selected[0];
         const left = position.x + (anchor.x + anchor.width + 8) * scale;
         const top = position.y + anchor.y * scale;
+        const palette = ['#111827', '#ef4444', '#f59e0b', '#10b981', '#3b82f6'];
         return (
           <div
-            style={{ position: 'absolute', left, top, zIndex: 21, background: '#fff', border: '1px solid #e2e8f0', borderRadius: 6, padding: 6, display: 'flex', gap: 8, alignItems: 'center' }}
+            style={{ position: 'absolute', left, top, zIndex: 21, background: '#fff', border: '1px solid #e2e8f0', borderRadius: 8, padding: 8, display: 'flex', gap: 10, alignItems: 'center' }}
             onPointerDown={(e) => e.stopPropagation()}
           >
-            <label style={{ fontSize: 12, color: '#475569' }}>Color</label>
-            <input
-              type="color"
-              value={anchor.color}
-              onChange={(e) => {
-                const color = e.target.value;
-                for (const o of selected) updateShape(o.id, { color }, { immediate: true });
-              }}
-              style={{ width: 28, height: 28, padding: 0, border: 'none', background: 'transparent' }}
-            />
+            <div style={{ display: 'flex', gap: 6 }}>
+              {palette.map((c) => (
+                <button key={c} className="toolbar-btn" style={{ width: 22, height: 22, borderRadius: 4, background: c, border: '1px solid #cbd5e1' }} onClick={() => { for (const o of selected) updateShape(o.id, { color: c }, { immediate: true }); }} />
+              ))}
+            </div>
+            <input type="color" value={anchor.color} onChange={(e) => { const c = e.target.value; for (const o of selected) updateShape(o.id, { color: c }, { immediate: true }); }} style={{ width: 28, height: 28, border: '1px solid #cbd5e1', borderRadius: 4, background: 'transparent' }} />
+            <div className="toolbar-sep" />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <label style={{ fontSize: 12, color: '#475569' }}>Opacity</label>
+              <input type="range" min={0} max={100} value={Math.round((anchor.opacity ?? 1) * 100)} onChange={(e) => { const v = Math.min(1, Math.max(0, Number(e.target.value) / 100)); for (const o of selected) updateShape(o.id, { opacity: v }, { immediate: true }); }} />
+            </div>
           </div>
         );
       })()}
