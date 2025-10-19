@@ -70,8 +70,13 @@ export default function CanvasObjectsProvider({ children }: { children: ReactNod
           }
           next.set(r.id, { ...(item as LocalCanvasObject), flashUntil, flashColor, lastEditorName });
         }
-        // If any local IDs not present remotely (e.g., optimistic), keep them
-        for (const p of prev) if (!next.has(p.id)) next.set(p.id, p as LocalCanvasObject);
+        // Preserve only temporarily suppressed locals; allow real deletions to propagate
+        for (const p of prev) {
+          if (!next.has(p.id)) {
+            const until = suppressRemoteRef.current.get(p.id) ?? 0;
+            if (until > now) next.set(p.id, p as LocalCanvasObject);
+          }
+        }
         return Array.from(next.values()).sort((a, b) => ((a.order ?? 0) - (b.order ?? 0)));
       });
       if (selectedId && !remote.find((o) => o.id === selectedId)) {
@@ -93,6 +98,7 @@ export default function CanvasObjectsProvider({ children }: { children: ReactNod
     setSelectedId(obj.id);
     setSelectedIds([obj.id]);
     // Persist immediately so a quick refresh does not drop the new object
+    suppressRemoteFor([obj.id], 800);
     void writeObject(obj, { immediate: true });
   }, [writeObject, history]);
 
