@@ -139,7 +139,7 @@ export function useAIAgent() {
       }
       case 'rowLayout': {
         const requestedGap = cmd.payload.gap ?? 16;
-        const verticalGap = cmd.payload.vgap ?? requestedGap;
+        const verticalGap = requestedGap;
         // Prefer operating on the current selection; fall back to all objects
         const target = (selectedIds && selectedIds.length > 0)
           ? objects.filter((o) => selectedIds.includes(o.id))
@@ -161,7 +161,7 @@ export function useAIAgent() {
           return Math.max(1, Math.abs(o.width * s) + Math.abs(o.height * c));
         };
         // Build wrapped rows that fit within container width using requested gap
-        const rows: Array<{ items: typeof sorted; totalW: number; maxH: number }[number]> = [] as any;
+        const rows: Array<{ items: typeof sorted; totalW: number; maxH: number }> = [] as any;
         let current: typeof sorted = [] as any;
         let currentW = 0;
         let currentMaxH = 0;
@@ -194,7 +194,6 @@ export function useAIAgent() {
           for (let i = 0; i < row.items.length; i++) {
             const o = row.items[i];
             const w = effW(o);
-            const h = effH(o);
             const centerX = Math.round(cursor + w / 2);
             const centerY = Math.round(topY + row.maxH / 2);
             const newX = Math.round(centerX - o.width / 2);
