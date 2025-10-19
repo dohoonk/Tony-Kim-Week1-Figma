@@ -46,11 +46,11 @@ export default function CanvasObjectsProvider({ children }: { children: ReactNod
         for (const r of remote) {
           const suppressUntil = suppressRemoteRef.current.get(r.id) ?? 0;
           let item: LocalCanvasObject = r as LocalCanvasObject;
+          const before = prev.find((p) => p.id === r.id) as LocalCanvasObject | undefined;
           if (suppressUntil > now) {
-            const local = prev.find((p) => p.id === r.id) as LocalCanvasObject | undefined;
+            const local = before;
             item = local ?? r;
           }
-          const before = prev.find((p) => p.id === r.id) as LocalCanvasObject | undefined;
           const lastEditor = item.lastEditedBy as string | undefined;
           const lastEditedAtMs = item.lastEditedAtMs as number | undefined;
           let flashUntil: number | undefined = before?.flashUntil;
@@ -68,7 +68,27 @@ export default function CanvasObjectsProvider({ children }: { children: ReactNod
               flashUntil = now + 1500;
             }
           }
-          next.set(r.id, { ...(item as LocalCanvasObject), flashUntil, flashColor, lastEditorName });
+          // If visual fields are unchanged, reuse previous object reference to avoid full re-render flicker
+          const visuallyEqual = !!before && (
+            before.type === item.type &&
+            before.x === item.x && before.y === item.y &&
+            before.width === item.width && before.height === item.height &&
+            (before.color ?? '') === (item.color ?? '') &&
+            (before.opacity ?? 1) === (item.opacity ?? 1) &&
+            (before.rotation ?? 0) === (item.rotation ?? 0) &&
+            (before.text ?? '') === (item.text ?? '') &&
+            (before.fontSize ?? 0) === (item.fontSize ?? 0) &&
+            (before.fontFamily ?? '') === (item.fontFamily ?? '') &&
+            (before.isBold ?? false) === (item.isBold ?? false) &&
+            (before.order ?? 0) === (item.order ?? 0)
+          );
+
+          if (visuallyEqual && suppressUntil <= now) {
+            // Reuse previous object reference for unchanged visuals
+            next.set(r.id, before as LocalCanvasObject);
+          } else {
+            next.set(r.id, { ...(item as LocalCanvasObject), flashUntil, flashColor, lastEditorName });
+          }
         }
         // Preserve only temporarily suppressed locals; allow real deletions to propagate
         for (const p of prev) {
