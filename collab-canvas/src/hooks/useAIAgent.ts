@@ -38,6 +38,28 @@ export function useAIAgent() {
         } as any);
         break;
       }
+      case 'createMany': {
+        const type = cmd.payload.type;
+        const count = Math.max(1, Math.min(500, Math.floor(cmd.payload.count)));
+        const padding = Math.max(0, Math.floor(cmd.payload.padding ?? 16));
+        const gap = Math.max(0, Math.floor(cmd.payload.gap ?? 12));
+        // Estimate item size from first of existing or defaults
+        const sampleW = 120;
+        const sampleH = type === 'circle' ? 120 : 100;
+        const innerW = Math.max(0, containerWidth - padding * 2);
+        const cols = Math.max(1, Math.floor((innerW + gap) / (sampleW + gap)));
+        let x = padding;
+        let y = padding;
+        let col = 0;
+        for (let i = 0; i < count; i++) {
+          const clamped = clampWithin(containerWidth, containerHeight, sampleW, sampleH, x, y);
+          addShape(type as any, { x: clamped.x, y: clamped.y, width: sampleW, height: sampleH, color: cmd.payload.color });
+          col += 1;
+          if (col >= cols) { col = 0; x = padding; y += sampleH + gap; }
+          else { x += sampleW + gap; }
+        }
+        break;
+      }
       case 'moveSelected':
         if (selectedId) {
           const obj = objects.find((o) => o.id === selectedId);

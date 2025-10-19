@@ -1,5 +1,6 @@
 export type AICommandType =
   | 'createShape'
+  | 'createMany'
   | 'createText'
   | 'moveSelected'
   | 'resizeSelected'
@@ -19,6 +20,14 @@ export type CreateShapePayload = {
   x?: number;
   y?: number;
   color?: string;
+};
+
+export type CreateManyPayload = {
+  type: 'rectangle' | 'circle' | 'triangle';
+  count: number;
+  color?: string;
+  gap?: number;
+  padding?: number;
 };
 
 export type CreateTextPayload = {
@@ -49,6 +58,7 @@ export type GenerateLoginFormPayload = {
 
 export type AICommand =
   | { type: 'createShape'; payload: CreateShapePayload }
+  | { type: 'createMany'; payload: CreateManyPayload }
   | { type: 'createText'; payload: CreateTextPayload }
   | { type: 'moveSelected'; payload: MoveSelectedPayload }
   | { type: 'resizeSelected'; payload: ResizeSelectedPayload }

@@ -39,6 +39,24 @@ export default function CommandInput() {
     {
       type: 'function',
       function: {
+        name: 'createMany',
+        description: 'Create many shapes in a grid without overlap',
+        parameters: {
+          type: 'object',
+          properties: {
+            type: { type: 'string', enum: ['rectangle', 'circle', 'triangle'] },
+            count: { type: 'number' },
+            color: { type: 'string' },
+            gap: { type: 'number' },
+            padding: { type: 'number' },
+          },
+          required: ['type', 'count'],
+        },
+      },
+    },
+    {
+      type: 'function',
+      function: {
         name: 'createText',
         description: 'Create a text object at x,y with optional fontSize and color',
         parameters: {
@@ -217,6 +235,10 @@ export default function CommandInput() {
               try { return JSON.parse(call.function.arguments || '{}'); } catch { return {}; }
             })();
             switch (call.function.name) {
+              case 'createMany':
+                execute({ type: 'createMany', payload: { type: args.type, count: args.count, color: args.color, gap: args.gap, padding: args.padding } as any });
+                executed = true;
+                break;
               case 'createShape':
                 execute({ type: 'createShape', payload: { type: args.type, x: args.x, y: args.y, color: args.color } });
                 executed = true;
