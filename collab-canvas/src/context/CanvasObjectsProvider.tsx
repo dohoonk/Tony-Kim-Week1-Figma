@@ -174,7 +174,13 @@ export default function CanvasObjectsProvider({ children }: { children: ReactNod
       if (!additive) return [id];
       return prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id];
     });
-  }, []);
+    // Touch the object so others immediately see the halo
+    const obj = objects.find((o) => o.id === id);
+    if (obj) {
+      void writeObject({ ...obj }, { immediate: true });
+      suppressRemoteFor([id]);
+    }
+  }, [objects, writeObject, suppressRemoteFor]);
 
   const selectMany = useCallback((ids: string[]) => {
     setSelectedIds(ids);

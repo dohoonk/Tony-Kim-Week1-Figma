@@ -1,11 +1,16 @@
 import { useState } from 'react';
 import { useComponents } from '../../hooks/useComponents';
+import { useUser } from '../../context/UserContext';
 
 export default function ComponentPanel() {
   const { items, saveSelected, insert, remove } = useComponents();
   const [name, setName] = useState('My Component');
+  const { user } = useUser();
   return (
     <div style={{ position: 'absolute', top: 56, right: 8, width: 240, background: '#ffffffd9', border: '1px solid #e2e8f0', borderRadius: 8, padding: 8, zIndex: 15 }}>
+      <div style={{ fontWeight: 600, color: '#111827', marginBottom: 6, fontSize: 13 }}>
+        {user ? `${(user.displayName || user.email?.split('@')[0] || 'Your')}’s Components` : 'Components'}
+      </div>
       <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
         <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Name" style={{ flex: 1, border: '1px solid #e2e8f0', borderRadius: 6, padding: '4px 6px' }} />
         <button onClick={() => saveSelected(name)} style={{ padding: '4px 8px' }}>Save</button>

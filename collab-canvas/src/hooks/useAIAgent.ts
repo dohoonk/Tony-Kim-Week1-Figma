@@ -5,7 +5,7 @@ import type { AICommand } from '../utils/schema';
 import { centerWithin, alignWithin, clampWithin } from '../utils/layoutEngine';
 
 export function useAIAgent() {
-  const { addShape, updateShape, selectedId, objects } = useCanvasObjects();
+  const { addShape, updateShape, selectedId, objects, selectedIds } = useCanvasObjects();
   const view = useCanvasView();
 
   const execute = useCallback((cmd: AICommand) => {
@@ -116,15 +116,73 @@ export function useAIAgent() {
         break;
       }
       case 'rowLayout': {
-        const gap = cmd.payload.gap ?? 16;
-        const padding = cmd.payload.padding ?? 0;
-        let x = padding;
-        const y = padding;
-        objects.forEach((o) => {
-          const clamped = clampWithin(containerWidth, containerHeight, o.width, o.height, x, y);
-          updateShape(o.id, { x: clamped.x, y: clamped.y }, { immediate: true });
-          x += o.width + gap;
-        });
+        const requestedGap = cmd.payload.gap ?? 16;
+        const verticalGap = cmd.payload.vgap ?? requestedGap;
+        // Prefer operating on the current selection; fall back to all objects
+        const target = (selectedIds && selectedIds.length > 0)
+          ? objects.filter((o) => selectedIds.includes(o.id))
+          : objects.slice();
+        if (target.length === 0) break;
+        // Preserve visual order by current x
+        const sorted = [...target].sort((a, b) => a.x - b.x);
+        // Effective (axis-aligned) width/height accounting for rotation
+        const effW = (o: typeof sorted[number]) => {
+          const rad = ((o.rotation ?? 0) % 360) * Math.PI / 180;
+          const c = Math.cos(rad);
+          const s = Math.sin(rad);
+          return Math.max(1, Math.abs(o.width * c) + Math.abs(o.height * s));
+        };
+        const effH = (o: typeof sorted[number]) => {
+          const rad = ((o.rotation ?? 0) % 360) * Math.PI / 180;
+          const c = Math.cos(rad);
+          const s = Math.sin(rad);
+          return Math.max(1, Math.abs(o.width * s) + Math.abs(o.height * c));
+        };
+        // Build wrapped rows that fit within container width using requested gap
+        const rows: Array<{ items: typeof sorted; totalW: number; maxH: number }[number]> = [] as any;
+        let current: typeof sorted = [] as any;
+        let currentW = 0;
+        let currentMaxH = 0;
+        for (let i = 0; i < sorted.length; i++) {
+          const o = sorted[i];
+          const w = effW(o);
+          const h = effH(o);
+          const nextW = current.length === 0 ? w : currentW + requestedGap + w;
+          if (nextW > containerWidth && current.length > 0) {
+            rows.push({ items: current, totalW: currentW, maxH: currentMaxH } as any);
+            current = [o] as any;
+            currentW = w;
+            currentMaxH = h;
+          } else {
+            current.push(o as any);
+            currentW = nextW;
+            if (h > currentMaxH) currentMaxH = h;
+          }
+        }
+        if (current.length > 0) rows.push({ items: current, totalW: currentW, maxH: currentMaxH } as any);
+        // Compute vertical positioning: center the whole block around current average center Y
+        const groupCenterY = Math.floor(sorted.reduce((sum, o) => sum + (o.y + o.height / 2), 0) / sorted.length);
+        const totalBlockH = rows.reduce((s, r) => s + r.maxH, 0) + verticalGap * Math.max(0, rows.length - 1);
+        let topY = Math.max(0, Math.min(containerHeight - totalBlockH, Math.floor(groupCenterY - totalBlockH / 2)));
+        // Place each row centered horizontally and with no overlap horizontally
+        for (const row of rows) {
+          const rowLeft = Math.max(0, Math.min(containerWidth - row.totalW, Math.floor((containerWidth - row.totalW) / 2)));
+          // Place by centers across the row
+          let cursor = rowLeft;
+          for (let i = 0; i < row.items.length; i++) {
+            const o = row.items[i];
+            const w = effW(o);
+            const h = effH(o);
+            const centerX = Math.round(cursor + w / 2);
+            const centerY = Math.round(topY + row.maxH / 2);
+            const newX = Math.round(centerX - o.width / 2);
+            const newY = Math.round(centerY - o.height / 2);
+            const clamped = clampWithin(containerWidth, containerHeight, o.width, o.height, newX, newY);
+            updateShape(o.id, { x: clamped.x, y: clamped.y }, { immediate: true });
+            cursor += w + requestedGap;
+          }
+          topY += row.maxH + verticalGap;
+        }
         break;
       }
       case 'generateLoginForm': {
@@ -154,7 +212,7 @@ export function useAIAgent() {
       default:
         break;
     }
-  }, [addShape, updateShape, selectedId, objects, view.stageWidth, view.stageHeight]);
+  }, [addShape, updateShape, selectedId, selectedIds, objects, view.stageWidth, view.stageHeight]);
 
   return { execute };
 }
