@@ -43,20 +43,24 @@ export function useAIAgent() {
         const count = Math.max(1, Math.min(500, Math.floor(cmd.payload.count)));
         const padding = Math.max(0, Math.floor(cmd.payload.padding ?? 16));
         const gap = Math.max(0, Math.floor(cmd.payload.gap ?? 12));
-        // Estimate item size from first of existing or defaults
-        const sampleW = 120;
-        const sampleH = type === 'circle' ? 120 : 100;
         const innerW = Math.max(0, containerWidth - padding * 2);
-        const cols = Math.max(1, Math.floor((innerW + gap) / (sampleW + gap)));
-        let x = padding;
-        let y = padding;
-        let col = 0;
+        const innerH = Math.max(0, containerHeight - padding * 2);
+        // Choose near-square grid based on aspect ratio to fit all items without overlap
+        const aspect = innerW > 0 && innerH > 0 ? innerW / innerH : 1;
+        let cols = Math.max(1, Math.ceil(Math.sqrt(count * aspect)));
+        let rows = Math.max(1, Math.ceil(count / cols));
+        // Compute cell size to fit grid (accounting for gaps)
+        const cellW = Math.max(16, Math.floor((innerW - gap * Math.max(0, cols - 1)) / cols));
+        const cellH = Math.max(16, Math.floor((innerH - gap * Math.max(0, rows - 1)) / rows));
+        // Use square cells for circles to keep shape
+        const itemW = type === 'circle' ? Math.min(cellW, cellH) : cellW;
+        const itemH = type === 'circle' ? Math.min(cellW, cellH) : cellH;
         for (let i = 0; i < count; i++) {
-          const clamped = clampWithin(containerWidth, containerHeight, sampleW, sampleH, x, y);
-          addShape(type as any, { x: clamped.x, y: clamped.y, width: sampleW, height: sampleH, color: cmd.payload.color });
-          col += 1;
-          if (col >= cols) { col = 0; x = padding; y += sampleH + gap; }
-          else { x += sampleW + gap; }
+          const r = Math.floor(i / cols);
+          const c = i % cols;
+          const x = padding + c * (itemW + gap);
+          const y = padding + r * (itemH + gap);
+          addShape(type as any, { x, y, width: itemW, height: itemH, color: cmd.payload.color });
         }
         break;
       }
