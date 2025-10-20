@@ -41,6 +41,11 @@ export default function CanvasObjectsProvider({ children }: { children: ReactNod
       idIndexRef.current.clear();
       for (const o of remote) idIndexRef.current.add(o.id);
       setObjects((prev) => {
+        const isOnline = typeof navigator === 'undefined' ? true : navigator.onLine;
+        if (!isOnline && remote.length === 0) {
+          // Avoid clearing UI when offline snapshot temporarily reports 0 docs
+          return prev;
+        }
         const now = Date.now();
         const next = new Map<string, LocalCanvasObject>();
         for (const r of remote) {
