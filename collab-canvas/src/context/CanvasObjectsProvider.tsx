@@ -97,7 +97,13 @@ export default function CanvasObjectsProvider({ children }: { children: ReactNod
             if (until > now) next.set(p.id, p as LocalCanvasObject);
           }
         }
-        return Array.from(next.values()).sort((a, b) => ((a.order ?? 0) - (b.order ?? 0)));
+        return Array.from(next.values()).sort((a, b) => {
+          const ao = a.order ?? 0;
+          const bo = b.order ?? 0;
+          if (ao !== bo) return ao - bo;
+          // Stable tiebreaker by id to avoid redraw flicker when order is equal
+          return a.id.localeCompare(b.id);
+        });
       });
       if (selectedId && !remote.find((o) => o.id === selectedId)) {
         setSelectedId(null);
@@ -203,8 +209,8 @@ export default function CanvasObjectsProvider({ children }: { children: ReactNod
     // Touch the object so others immediately see the halo
     const obj = objects.find((o) => o.id === id);
     if (obj) {
-      void writeObject({ ...obj }, { immediate: true });
-      suppressRemoteFor([id]);
+      // Do NOT write on select; it causes lastEdited updates and makes all other clients flash.
+      // Only suppress remote echoes if a write will follow (not here).
     }
   }, [objects, writeObject, suppressRemoteFor]);
 
